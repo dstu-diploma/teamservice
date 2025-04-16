@@ -1,0 +1,12 @@
+[tool.aerich]
+tortoise_orm = "app.db.TORTOISE_ORM"
+location = "./migrations"
+src_folder = "./."
+
+[tool.black]
+line-length = 80
+target-version = ["py312"]
+
+[build-system]
+requires = ["black"]
+build-backend = "setuptools.build_meta"
