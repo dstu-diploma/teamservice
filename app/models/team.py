@@ -15,7 +15,7 @@ class TeamModel(Model):
 class TeamMatesModel(Model):
     team: fields.ForeignKeyRelation[TeamModel] = fields.ForeignKeyField(
         model_name="models.TeamModel",
-        related_name="teams",
+        related_name="team_mates",
         on_delete=fields.CASCADE,
     )
     user_id = fields.IntField(unique=True)

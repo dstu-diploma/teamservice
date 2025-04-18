@@ -6,17 +6,10 @@ class TeamDoesNotExistException(HTTPException):
         super().__init__(status_code=400, detail="No team with such id!")
 
 
-class AlreadyTeamMemberException(HTTPException):
-    def __init__(self):
-        super().__init__(
-            status_code=400, detail="Current user is already member of a group!"
-        )
-
-
 class AlreadyTeamOwnerException(HTTPException):
     def __init__(self):
         super().__init__(
-            status_code=400, detail="Current user is already owner of a group!"
+            status_code=400, detail="User is already owner of a group!"
         )
 
 
