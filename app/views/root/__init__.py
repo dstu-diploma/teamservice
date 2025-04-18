@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends
 from app.controllers.auth import get_user_dto
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from app.controllers.team import TeamController, get_team_controller
-from app.controllers.team.dto import TeamDto, TeamMateDto
-from app.views.root.dependencies import get_team_owner
+from app.controllers.team.dto import TeamDto
+from app.views.dependencies import get_team_owner
 from app.views.root.dto import TeamNameDto
 
 
@@ -27,17 +27,6 @@ async def get_info(
     id: int, controller: TeamController = Depends(get_team_controller)
 ):
     return await controller.get_info(id)
-
-
-@router.get(
-    "/{id}/mates",
-    response_model=list[TeamMateDto],
-    summary="Получение списка участников команды",
-)
-async def get_mates(
-    id: int, controller: TeamController = Depends(get_team_controller)
-):
-    return await controller.get_mates(id)
 
 
 @router.post(
