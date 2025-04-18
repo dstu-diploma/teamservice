@@ -19,3 +19,15 @@ class TeamMatesModel(Model):
         on_delete=fields.CASCADE,
     )
     user_id = fields.IntField(unique=True)
+
+
+class TeamInvitesModel(Model):
+    team: fields.ForeignKeyRelation[TeamModel] = fields.ForeignKeyField(
+        model_name="models.TeamModel",
+        related_name="team_invites",
+        on_delete=fields.CASCADE,
+    )
+    user_id = fields.IntField()
+
+    class Meta:
+        unique_together = (("team", "user_id"),)
