@@ -1,6 +1,8 @@
 from app.controllers.user.exceptions import UserDoesNotExistException
 from app.controllers.team.exceptions import (
+    TeamNameAlreadyUsedException,
     AlreadyTeamMemberException,
+    AlreadyTeamOwnerException,
     TeamDoesNotExistException,
 )
 from app.controllers.user import IUserController, UserController
@@ -8,6 +10,7 @@ from app.controllers.team.dto import TeamDto, TeamMateDto
 from app.models.team import TeamMatesModel, TeamModel
 from fastapi import Depends
 from typing import Protocol
+from tortoise.exceptions import IntegrityError
 
 
 class ITeamController(Protocol):
@@ -37,11 +40,17 @@ class TeamController(ITeamController):
         if not await self.user_controller.get_user_exists(owner_id):
             raise UserDoesNotExistException()
 
-        if TeamMatesModel.get_or_none(user_id=owner_id) is not None:
+        if await self.get_by_owner(owner_id) is not None:
+            raise AlreadyTeamOwnerException()
+
+        if await TeamMatesModel.get_or_none(user_id=owner_id) is not None:
             raise AlreadyTeamMemberException()
 
-        team = await TeamModel.create(name=name, owner_id=owner_id)
-        return TeamDto.from_tortoise(team)
+        try:
+            team = await TeamModel.create(name=name, owner_id=owner_id)
+            return TeamDto.from_tortoise(team)
+        except IntegrityError:
+            raise TeamNameAlreadyUsedException from IntegrityError
 
     async def get_info(self, team_id: int) -> TeamDto:
         return TeamDto.from_tortoise(await self._get_team_by_id(team_id))
@@ -54,9 +63,12 @@ class TeamController(ITeamController):
     async def update_name(self, team_id: int, new_name: str) -> TeamDto:
         team = await self._get_team_by_id(team_id)
         team.name = new_name
-        await team.save()
 
-        return TeamDto.from_tortoise(team)
+        try:
+            await team.save()
+            return TeamDto.from_tortoise(team)
+        except IntegrityError:
+            raise TeamNameAlreadyUsedException from IntegrityError
 
     async def delete(self, team_id: int) -> None:
         team = await self._get_team_by_id(team_id)

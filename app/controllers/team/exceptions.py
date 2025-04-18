@@ -13,6 +13,18 @@ class AlreadyTeamMemberException(HTTPException):
         )
 
 
+class AlreadyTeamOwnerException(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=400, detail="Current user is already owner of a group!"
+        )
+
+
+class TeamNameAlreadyUsedException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=400, detail="This team name already used!")
+
+
 class UserNotInTeamException(HTTPException):
     def __init__(self):
         super().__init__(
