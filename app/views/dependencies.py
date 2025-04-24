@@ -4,7 +4,7 @@ from app.controllers.auth import get_user_dto
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from app.controllers.team import TeamController, get_team_controller
 from app.controllers.team.dto import TeamDto
-from app.controllers.team.exceptions import UserIsNotOwnerOfGroupException
+from app.controllers.team.exceptions import UserIsNotOwnerOfTeamException
 
 
 class TeamOwnerDto(BaseModel):
@@ -18,6 +18,6 @@ async def get_team_owner(
 ) -> TeamOwnerDto:
     team = await controller.get_by_owner(user_dto.user_id)
     if team is None:
-        raise UserIsNotOwnerOfGroupException()
+        raise UserIsNotOwnerOfTeamException()
 
     return TeamOwnerDto(user_dto=user_dto, team_dto=team)

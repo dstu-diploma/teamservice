@@ -3,30 +3,37 @@ from fastapi import HTTPException
 
 class TeamDoesNotExistException(HTTPException):
     def __init__(self):
-        super().__init__(status_code=400, detail="No team with such id!")
+        super().__init__(
+            status_code=400, detail="Команды с таким ID не существует!"
+        )
 
 
 class AlreadyTeamOwnerException(HTTPException):
     def __init__(self):
         super().__init__(
-            status_code=400, detail="User is already owner of a group!"
+            status_code=400,
+            detail="Данный пользователь уже является владельцем команды!",
         )
 
 
 class TeamNameAlreadyUsedException(HTTPException):
     def __init__(self):
-        super().__init__(status_code=400, detail="This team name already used!")
+        super().__init__(
+            status_code=400, detail="Данное название команды уже занято!"
+        )
 
 
 class UserNotInTeamException(HTTPException):
     def __init__(self):
         super().__init__(
-            status_code=400, detail="Current user is not member of any group!"
+            status_code=400,
+            detail="Данный пользователь не является членом какой-либо команды!",
         )
 
 
-class UserIsNotOwnerOfGroupException(HTTPException):
+class UserIsNotOwnerOfTeamException(HTTPException):
     def __init__(self):
         super().__init__(
-            status_code=400, detail="Current user is not owner of any group!"
+            status_code=400,
+            detail="Данный пользователь не является владельцем какой-либо команды!",
         )
