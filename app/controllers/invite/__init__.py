@@ -24,6 +24,7 @@ class IInviteController(Protocol):
     user_controller: IUserController
     mate_controller: IMateController
 
+    async def clear_by_user(self, user_id: int) -> None: ...
     async def invite_user(
         self, team_id: int, user_id: int
     ) -> TeamInviteDto: ...
@@ -42,6 +43,9 @@ class InviteController(IInviteController):
         self.team_controller = team_controller
         self.user_controller = user_controller
         self.mate_controller = mate_controller
+
+    async def clear_by_user(self, user_id: int) -> None:
+        await TeamInvitesModel.filter(user_id=user_id).delete()
 
     async def invite_user(self, team_id: int, user_id: int) -> TeamInviteDto:
         if not await self.user_controller.get_user_exists(user_id):
@@ -78,6 +82,7 @@ class InviteController(IInviteController):
     async def accept(self, team_id: int, user_id: int) -> None:
         await self.decline(team_id, user_id)
         await self.mate_controller.add(team_id, user_id)
+        await self.clear_by_user(user_id)
 
 
 def get_invite_controller(
