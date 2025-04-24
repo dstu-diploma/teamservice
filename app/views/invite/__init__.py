@@ -1,5 +1,5 @@
 from app.controllers.invite import InviteController, get_invite_controller
-from app.views.dependencies import get_team_owner, TeamDto
+from app.views.dependencies import TeamOwnerDto, get_team_owner
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from app.controllers.invite.dto import TeamInviteDto
 from app.controllers.auth import get_user_dto
@@ -19,11 +19,10 @@ async def get_user_invites(
 @router.post("/invite/{id}", response_model=TeamInviteDto)
 async def invite_user(
     user_id: int,
-    owner_pack: tuple[AccessJWTPayloadDto, TeamDto] = Depends(get_team_owner),
+    owner_dto: TeamOwnerDto = Depends(get_team_owner),
     controller: InviteController = Depends(get_invite_controller),
 ):
-    team_dto = owner_pack[1]
-    return await controller.invite_user(team_dto.id, user_id)
+    return await controller.invite_user(owner_dto.team_dto.id, user_id)
 
 
 @router.post("/{id}")

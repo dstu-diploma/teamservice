@@ -4,8 +4,8 @@ from app.controllers.auth import get_user_dto
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from app.controllers.team import TeamController, get_team_controller
 from app.controllers.team.dto import TeamDto
-from app.views.dependencies import get_team_owner
-from app.views.root.dto import TeamNameDto
+from app.views.dependencies import TeamOwnerDto, get_team_owner
+from app.views.root.dto import TeamNameDto, UserIdDto
 
 
 router = APIRouter(tags=["Основное"], prefix="")
@@ -34,11 +34,26 @@ async def get_info(
 )
 async def update_name(
     update_dto: TeamNameDto,
-    owner_pack: tuple[AccessJWTPayloadDto, TeamDto] = Depends(get_team_owner),
+    owner_dto: TeamOwnerDto = Depends(get_team_owner),
     controller: TeamController = Depends(get_team_controller),
 ):
-    """Изменяет название команды у текущего залогиненного пользователя.
+    """
+    Изменяет название команды у текущего залогиненного пользователя.
     Работает только в случае, если пользователь - владелец команды
     """
-    _, team = owner_pack
-    return await controller.update_name(team.id, update_dto.name)
+    return await controller.update_name(owner_dto.team_dto.id, update_dto.name)
+
+
+@router.post(
+    "/change_owner", response_model=TeamDto, summary="Передача прав владельца"
+)
+async def change_owner(
+    dto: UserIdDto,
+    owner_dto: TeamOwnerDto = Depends(get_team_owner),
+    controller: TeamController = Depends(get_team_controller),
+):
+    """
+    Передает права владельца команды другому пользователю.
+    Текущий владелец станет участником.
+    """
+    return await controller.grant_ownership(owner_dto.team_dto.id, dto.user_id)
