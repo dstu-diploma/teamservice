@@ -21,6 +21,7 @@ class ITeamController(Protocol):
     user_controller: IUserController
 
     async def create(self, name: str, owner_id: int) -> TeamDto: ...
+    async def exists(self, team_id: int) -> bool: ...
     async def get_info(self, team_id: int) -> TeamDto: ...
     async def update_name(self, team_id: int, new_name: str) -> TeamDto: ...
     async def delete(self, team_id: int) -> None: ...
@@ -38,6 +39,9 @@ class TeamController(ITeamController):
             raise TeamDoesNotExistException()
 
         return team
+
+    async def exists(self, team_id: int) -> bool:
+        return await TeamModel.exists(id=team_id)
 
     async def create(self, name: str, owner_id: int) -> TeamDto:
         if not await self.user_controller.get_user_exists(owner_id):
