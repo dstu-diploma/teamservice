@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from app.controllers.auth import get_user_dto
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from app.controllers.team import TeamController, get_team_controller
-from app.controllers.team.dto import TeamDto
+from app.controllers.team.dto import TeamDto, TeamWithMatesDto
 from app.views.dependencies import TeamOwnerDto, get_team_owner
 from app.views.root.dto import TeamNameDto, UserIdDto
 
@@ -24,13 +24,16 @@ async def create_team(
 
 
 @router.get(
-    "/{id}", response_model=TeamDto, summary="Получение инфоромации о команде"
+    "/{id}",
+    response_model=TeamWithMatesDto,
+    summary="Получение инфоромации о команде",
 )
 async def get_info(
     id: int, controller: TeamController = Depends(get_team_controller)
 ):
     """
-    Возвращает информацию о команде.
+    Возвращает информацию о команде. Помимо информации, сюда входит список всех участников.
+    Владелец не входит в список участников.
     """
     return await controller.get_info(id)
 
@@ -45,7 +48,7 @@ async def update_name(
 ):
     """
     Изменяет название команды у текущего залогиненного пользователя.
-    Работает только в случае, если пользователь - владелец команды
+    Работает только в случае, если пользователь - владелец команды.
     """
     return await controller.update_name(owner_dto.team_dto.id, update_dto.name)
 

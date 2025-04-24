@@ -15,7 +15,7 @@ from app.controllers.user import (
     UserController,
     get_user_controller,
 )
-from app.controllers.team.dto import TeamDto
+from app.controllers.team.dto import TeamDto, TeamWithMatesDto
 from app.models.team import TeamMatesModel, TeamModel
 from fastapi import Depends
 from typing import Protocol
@@ -28,7 +28,7 @@ class ITeamController(Protocol):
 
     async def create(self, name: str, owner_id: int) -> TeamDto: ...
     async def exists(self, team_id: int) -> bool: ...
-    async def get_info(self, team_id: int) -> TeamDto: ...
+    async def get_info(self, team_id: int) -> TeamWithMatesDto: ...
     async def update_name(self, team_id: int, new_name: str) -> TeamDto: ...
     async def delete(self, team_id: int) -> None: ...
     async def get_by_owner(self, owner_id: int) -> TeamDto | None: ...
@@ -72,8 +72,13 @@ class TeamController(ITeamController):
         except IntegrityError:
             raise TeamNameAlreadyUsedException from IntegrityError
 
-    async def get_info(self, team_id: int) -> TeamDto:
-        return TeamDto.from_tortoise(await self._get_team_by_id(team_id))
+    async def get_info(self, team_id: int) -> TeamWithMatesDto:
+        team = await self._get_team_by_id(team_id)
+        mates = await self.mate_controller.get_mates(team_id)
+
+        return TeamWithMatesDto(
+            id=team.id, name=team.name, owner_id=team.owner_id, mates=mates
+        )
 
     async def update_name(self, team_id: int, new_name: str) -> TeamDto:
         team = await self._get_team_by_id(team_id)
