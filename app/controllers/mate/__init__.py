@@ -17,7 +17,7 @@ class IMateController(Protocol):
     async def get_mates(self, team_id: int) -> list[TeamMateDto]: ...
     async def get_mate(self, user_id: int) -> TeamMateDto | None: ...
     async def add(self, team_id: int, user_id: int) -> TeamMateDto: ...
-    async def remove(self, team_id: int, user_id: int) -> None: ...
+    async def remove(self, user_id: int) -> None: ...
 
 
 class MateController(IMateController):
@@ -28,6 +28,7 @@ class MateController(IMateController):
         mate = await TeamMatesModel.get_or_none(user_id=user_id)
         if mate:
             return TeamMateDto.from_tortoise(mate)
+        return None
 
     async def get_mates(self, team_id: int) -> list[TeamMateDto]:
         mates = await TeamMatesModel.filter(team_id=team_id)
@@ -44,14 +45,15 @@ class MateController(IMateController):
         mate = await TeamMatesModel.create(team_id=team_id, user_id=user_id)
         return TeamMateDto.from_tortoise(mate)
 
-    async def remove(self, team_id: int, user_id: int) -> None:
+    async def remove(self, user_id: int) -> None:
         if not await self.user_controller.get_user_exists(user_id):
             raise UserDoesNotExistException()
 
-        if await self.get_mate(user_id) is None:
+        mate = await TeamMatesModel.get_or_none(user_id=user_id)
+        if mate is None:
             raise NotAMemberException()
 
-        await TeamMatesModel.delete(team_id=team_id, user_id=user_id)
+        await mate.delete()
 
 
 def get_mate_controller(
