@@ -1,3 +1,8 @@
+from app.controllers.mate import (
+    IMateController,
+    MateController,
+    get_mate_controller,
+)
 from app.controllers.user.exceptions import UserDoesNotExistException
 from app.controllers.team.exceptions import (
     TeamNameAlreadyUsedException,
@@ -19,6 +24,7 @@ from tortoise.exceptions import IntegrityError
 
 class ITeamController(Protocol):
     user_controller: IUserController
+    mate_controller: IMateController
 
     async def create(self, name: str, owner_id: int) -> TeamDto: ...
     async def exists(self, team_id: int) -> bool: ...
@@ -26,11 +32,18 @@ class ITeamController(Protocol):
     async def update_name(self, team_id: int, new_name: str) -> TeamDto: ...
     async def delete(self, team_id: int) -> None: ...
     async def get_by_owner(self, owner_id: int) -> TeamDto | None: ...
+    async def get_all(self) -> list[TeamDto]: ...
+    async def grant_ownership(
+        self, team_id: int, new_owner_id: int
+    ) -> TeamDto: ...
 
 
 class TeamController(ITeamController):
-    def __init__(self, user_controller: IUserController):
+    def __init__(
+        self, user_controller: IUserController, mate_controller: IMateController
+    ):
         self.user_controller = user_controller
+        self.mate_controller = mate_controller
 
     async def _get_team_by_id(self, team_id: int) -> TeamModel:
         team = await TeamModel.get_or_none(id=team_id)
@@ -84,8 +97,22 @@ class TeamController(ITeamController):
 
         return None
 
+    async def get_all(self) -> list[TeamDto]:
+        teams = await TeamModel.all()
+        return [TeamDto.from_tortoise(team) for team in teams]
+
+    async def grant_ownership(self, team_id: int, new_owner_id: int) -> TeamDto:
+        team = await self._get_team_by_id(team_id)
+        await self.mate_controller.remove(new_owner_id)
+        await self.mate_controller.add(team_id, team.owner_id)
+        team.owner_id = new_owner_id
+        await team.save()
+
+        return TeamDto.from_tortoise(team)
+
 
 def get_team_controller(
-    controller: UserController = Depends(get_user_controller),
+    user_controller: UserController = Depends(get_user_controller),
+    mate_controller: MateController = Depends(get_mate_controller),
 ) -> TeamController:
-    return TeamController(controller)
+    return TeamController(user_controller, mate_controller)
