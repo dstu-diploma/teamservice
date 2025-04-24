@@ -14,6 +14,9 @@ async def get_team_mates(
     mate_controller: MateController = Depends(get_mate_controller),
     team_controller: TeamController = Depends(get_team_controller),
 ):
+    """
+    Возвращает список участников группы. Владелец сюда не входит.
+    """
     mate_dto = await mate_controller.get_mate(user_dto.user_id)
     if mate_dto:
         return await mate_controller.get_mates(mate_dto.team_id)

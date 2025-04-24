@@ -17,6 +17,9 @@ async def create_team(
     user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
     controller: TeamController = Depends(get_team_controller),
 ):
+    """
+    Регистрирует новую команду.
+    """
     return await controller.create(create_dto.name, user_dto.user_id)
 
 
@@ -26,6 +29,9 @@ async def create_team(
 async def get_info(
     id: int, controller: TeamController = Depends(get_team_controller)
 ):
+    """
+    Возвращает информацию о команде.
+    """
     return await controller.get_info(id)
 
 

@@ -8,36 +8,56 @@ from fastapi import APIRouter, Depends
 router = APIRouter(tags=["Основное"], prefix="/invite")
 
 
-@router.get("/", response_model=list[TeamInviteDto])
+@router.get(
+    "/",
+    response_model=list[TeamInviteDto],
+    summary="Получение списка приглашений",
+)
 async def get_user_invites(
     user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
     controller: InviteController = Depends(get_invite_controller),
 ):
+    """
+    Возвращает список всех приглашений в команды для текущего пользователя.
+    """
     return await controller.get_user_invites(user_dto.user_id)
 
 
-@router.post("/invite/{id}", response_model=TeamInviteDto)
+@router.post(
+    "/invite/{id}",
+    response_model=TeamInviteDto,
+    summary="Приглашение пользователя",
+)
 async def invite_user(
     user_id: int,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
     controller: InviteController = Depends(get_invite_controller),
 ):
+    """
+    Отправляет пользователю приглашение в команду.
+    """
     return await controller.invite_user(owner_dto.team_dto.id, user_id)
 
 
-@router.post("/{id}")
+@router.post("/{id}", summary="Принятие приглашения")
 async def accept_invite(
     team_id: int,
     user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
     controller: InviteController = Depends(get_invite_controller),
 ):
+    """
+    Принимает приглашение в команду. После принятия все остальные приглашения удаляются.
+    """
     return await controller.accept(team_id, user_dto.user_id)
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", summary="Отказ от приглашения")
 async def decline_invite(
     team_id: int,
     user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
     controller: InviteController = Depends(get_invite_controller),
 ):
+    """
+    Позволяет отказаться от приглашения. По сути просто удаляет его.
+    """
     return await controller.decline(team_id, user_dto.user_id)
