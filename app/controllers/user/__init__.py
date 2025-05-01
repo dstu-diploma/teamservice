@@ -32,7 +32,6 @@ class UserController(IUserController):
             raise UserServiceError()
 
 
-@lru_cache
 async def get_http_client():
     async with httpx.AsyncClient() as client:
         yield client
