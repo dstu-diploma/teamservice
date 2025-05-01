@@ -11,7 +11,6 @@ from app.controllers.mate import (
 from app.controllers.user import IUserController
 from app.models.team import TeamInvitesModel
 from app.controllers.user.exceptions import UserDoesNotExistException
-from app.controllers.team.exceptions import AlreadyTeamOwnerException
 from app.controllers.mate.exceptions import AlreadyTeamMemberException
 from typing import Protocol
 from .exceptions import UserAlreadyInvitedException, NoSuchInviteException
@@ -54,9 +53,6 @@ class InviteController(IInviteController):
         if await TeamInvitesModel.exists(team_id=team_id, user_id=user_id):
             raise UserAlreadyInvitedException()
 
-        if await self.team_controller.get_by_owner(user_id) is not None:
-            raise AlreadyTeamOwnerException()
-
         if await self.mate_controller.get_mate(user_id):
             raise AlreadyTeamMemberException()
 
@@ -81,7 +77,7 @@ class InviteController(IInviteController):
     # поэтому упрощаем
     async def accept(self, team_id: int, user_id: int) -> None:
         await self.decline(team_id, user_id)
-        await self.mate_controller.add(team_id, user_id)
+        await self.mate_controller.add(team_id, user_id, is_captain=False)
         await self.clear_by_user(user_id)
 
 

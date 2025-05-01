@@ -6,12 +6,13 @@ router = APIRouter(
     tags=["Internal"],
     prefix="/internal",
     include_in_schema=False,
-    dependencies=(Depends(get_token_from_header),),
 )
 
 
 @router.get("/{id}")
-async def get_user_by_id(
-    id: int, controller: TeamController = Depends(get_team_controller)
+async def get_team_by_id(
+    id: int,
+    _=Depends(get_token_from_header),
+    controller: TeamController = Depends(get_team_controller),
 ):
     return await controller.exists(id)

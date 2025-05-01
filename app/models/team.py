@@ -6,8 +6,6 @@ class TeamModel(Model):
     id = fields.IntField(pk=True)
     name = fields.CharField(max_length=40, unique=True)
 
-    owner_id = fields.IntField(unique=True)
-
     class Meta:
         table: str = "teams"
 
@@ -19,6 +17,7 @@ class TeamMatesModel(Model):
         on_delete=fields.CASCADE,
     )
     user_id = fields.IntField(unique=True)
+    is_captain = fields.BooleanField()
 
 
 class TeamInvitesModel(Model):

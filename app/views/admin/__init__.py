@@ -1,10 +1,11 @@
-from app.controllers.team import TeamController, get_team_controller
+from app.controllers.mate import IMateController, get_mate_controller
+from app.controllers.team import ITeamController, get_team_controller
+from app.views.mate.dto import MateCaptainRightsDto
+from app.controllers.mate.dto import TeamMateDto
+from app.views.admin.dto import ChangeNameDto
 from app.controllers.auth import UserWithRole
 from app.controllers.team.dto import TeamDto
 from fastapi import APIRouter, Depends
-
-from app.views.admin.dto import ChangeNameDto
-from app.views.root.dto import UserIdDto
 
 
 router = APIRouter(
@@ -16,7 +17,7 @@ router = APIRouter(
 
 @router.get("/", response_model=list[TeamDto], summary="Список всех команд")
 async def get_all_teams(
-    team_controller: TeamController = Depends(get_team_controller),
+    team_controller: ITeamController = Depends(get_team_controller),
 ):
     """
     Возвращает список всех команд.
@@ -27,7 +28,7 @@ async def get_all_teams(
 @router.post("/name", response_model=TeamDto, summary="Изменение названия")
 async def change_name(
     name_dto: ChangeNameDto,
-    team_controller: TeamController = Depends(get_team_controller),
+    team_controller: ITeamController = Depends(get_team_controller),
 ):
     """
     Изменяет название команды. Название должно быть уникальным.
@@ -39,7 +40,7 @@ async def change_name(
 
 @router.delete("/{id}", summary="Удаление команды")
 async def delete_team(
-    id: int, team_controller: TeamController = Depends(get_team_controller)
+    id: int, team_controller: ITeamController = Depends(get_team_controller)
 ):
     """
     Удаляет команду из списка команд.
@@ -48,17 +49,15 @@ async def delete_team(
 
 
 @router.post(
-    "/{id}/change_owner",
-    response_model=TeamDto,
+    "/captain-rights",
+    response_model=TeamMateDto,
     summary="Передача прав владельца",
 )
 async def change_owner(
-    id: int,
-    dto: UserIdDto,
-    team_controller: TeamController = Depends(get_team_controller),
-    summary="Передача прав владельца",
+    dto: MateCaptainRightsDto,
+    mate_controller: IMateController = Depends(get_mate_controller),
 ):
     """
-    Изменяет ID владельца команды. Предыдущий владелец станет участником.
+    Устанавливает права капитана команды. Предыдущий владелец станет участником.
     """
-    return await team_controller.grant_ownership(id, dto.user_id)
+    return await mate_controller.set_is_captain(dto.user_id, dto.is_captain)

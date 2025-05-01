@@ -5,7 +5,13 @@ from pydantic import BaseModel
 class TeamMateDto(BaseModel):
     team_id: int
     user_id: int
+    is_captain: bool
 
     @staticmethod
     def from_tortoise(mate: TeamMatesModel):
-        return TeamMateDto(team_id=mate.team_id, user_id=mate.user_id)
+        return TeamMateDto(
+            # на самом деле там есть этот атрибут
+            team_id=mate.team_id,  # type: ignore[attr-defined]
+            user_id=mate.user_id,
+            is_captain=mate.is_captain,
+        )

@@ -1,10 +1,9 @@
-from fastapi import Depends
-from pydantic import BaseModel
-from app.controllers.auth import get_user_dto
+from app.controllers.team import ITeamController, get_team_controller
 from app.controllers.auth.dto import AccessJWTPayloadDto
-from app.controllers.team import TeamController, get_team_controller
+from app.controllers.auth import get_user_dto
 from app.controllers.team.dto import TeamDto
-from app.controllers.team.exceptions import UserIsNotOwnerOfTeamException
+from pydantic import BaseModel
+from fastapi import Depends
 
 
 class TeamOwnerDto(BaseModel):
@@ -14,10 +13,7 @@ class TeamOwnerDto(BaseModel):
 
 async def get_team_owner(
     user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
-    controller: TeamController = Depends(get_team_controller),
+    team_controller: ITeamController = Depends(get_team_controller),
 ) -> TeamOwnerDto:
-    team = await controller.get_by_owner(user_dto.user_id)
-    if team is None:
-        raise UserIsNotOwnerOfTeamException()
-
+    team = await team_controller.get_by_captain(user_dto.user_id)
     return TeamOwnerDto(user_dto=user_dto, team_dto=team)

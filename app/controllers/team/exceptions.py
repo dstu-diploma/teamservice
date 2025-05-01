@@ -8,14 +8,6 @@ class TeamDoesNotExistException(HTTPException):
         )
 
 
-class AlreadyTeamOwnerException(HTTPException):
-    def __init__(self):
-        super().__init__(
-            status_code=400,
-            detail="Данный пользователь уже является владельцем команды!",
-        )
-
-
 class TeamNameAlreadyUsedException(HTTPException):
     def __init__(self):
         super().__init__(
