@@ -24,7 +24,7 @@ async def create_team(
 
 
 @router.get(
-    "/{id}",
+    "/info/{id}",
     response_model=TeamWithMatesDto,
     summary="Получение инфоромации о команде",
 )
