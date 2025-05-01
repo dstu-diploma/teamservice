@@ -1,27 +1,27 @@
-from app.controllers.mate import (
-    IMateController,
-    MateController,
-    get_mate_controller,
-)
-from app.controllers.mate.dto import TeamMateDto
+from app.controllers.mate.exceptions import AlreadyTeamMemberException
 from app.controllers.user.exceptions import UserDoesNotExistException
+from app.controllers.team.dto import TeamDto, TeamWithMatesDto
+from tortoise.exceptions import IntegrityError
+from app.models.team import TeamModel
+from functools import lru_cache
+from fastapi import Depends
+from typing import Protocol
+
 from app.controllers.team.exceptions import (
     TeamNameAlreadyUsedException,
     TeamDoesNotExistException,
     UserIsNotOwnerOfTeamException,
     UserNotInTeamException,
 )
-from app.controllers.mate.exceptions import AlreadyTeamMemberException
 from app.controllers.user import (
     IUserController,
-    UserController,
     get_user_controller,
 )
-from app.controllers.team.dto import TeamDto, TeamWithMatesDto
-from app.models.team import TeamModel
-from fastapi import Depends
-from typing import Protocol
-from tortoise.exceptions import IntegrityError
+
+from app.controllers.mate import (
+    IMateController,
+    get_mate_controller,
+)
 
 
 class ITeamController(Protocol):
@@ -106,8 +106,9 @@ class TeamController(ITeamController):
         return [TeamDto.from_tortoise(team) for team in teams]
 
 
+@lru_cache
 def get_team_controller(
-    user_controller: UserController = Depends(get_user_controller),
-    mate_controller: MateController = Depends(get_mate_controller),
+    user_controller: IUserController = Depends(get_user_controller),
+    mate_controller: IMateController = Depends(get_mate_controller),
 ) -> TeamController:
     return TeamController(user_controller, mate_controller)

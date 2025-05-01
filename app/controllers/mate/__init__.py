@@ -1,14 +1,15 @@
-from app.controllers.user import (
-    IUserController,
-    UserController,
-    get_user_controller,
-)
 from .exceptions import AlreadyTeamMemberException, NotAMemberException
 from app.controllers.user.exceptions import UserDoesNotExistException
 from app.models.team import TeamMatesModel
+from functools import lru_cache
 from .dto import TeamMateDto
 from typing import Protocol
 from fastapi import Depends
+
+from app.controllers.user import (
+    get_user_controller,
+    IUserController,
+)
 
 
 class IMateController(Protocol):
@@ -86,7 +87,8 @@ class MateController(IMateController):
         return [TeamMateDto.from_tortoise(captain) for captain in captains]
 
 
+@lru_cache
 def get_mate_controller(
-    user_controller: UserController = Depends(get_user_controller),
+    user_controller: IUserController = Depends(get_user_controller),
 ) -> MateController:
     return MateController(user_controller)

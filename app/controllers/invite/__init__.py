@@ -1,21 +1,21 @@
-from app.controllers.team import (
-    ITeamController,
-    get_team_controller,
-    TeamController,
-)
-from app.controllers.mate import (
-    IMateController,
-    MateController,
-    get_mate_controller,
-)
+from .exceptions import UserAlreadyInvitedException, NoSuchInviteException
+from app.controllers.mate.exceptions import AlreadyTeamMemberException
+from app.controllers.user.exceptions import UserDoesNotExistException
 from app.controllers.user import IUserController
 from app.models.team import TeamInvitesModel
-from app.controllers.user.exceptions import UserDoesNotExistException
-from app.controllers.mate.exceptions import AlreadyTeamMemberException
-from typing import Protocol
-from .exceptions import UserAlreadyInvitedException, NoSuchInviteException
+from functools import lru_cache
 from .dto import TeamInviteDto
+from typing import Protocol
 from fastapi import Depends
+
+from app.controllers.team import (
+    get_team_controller,
+    ITeamController,
+)
+from app.controllers.mate import (
+    get_mate_controller,
+    IMateController,
+)
 
 
 class IInviteController(Protocol):
@@ -81,11 +81,11 @@ class InviteController(IInviteController):
         await self.clear_by_user(user_id)
 
 
+@lru_cache
 def get_invite_controller(
-    team_controller: TeamController = Depends(get_team_controller),
-    mate_controller: MateController = Depends(get_mate_controller),
+    team_controller: ITeamController = Depends(get_team_controller),
+    mate_controller: IMateController = Depends(get_mate_controller),
 ) -> InviteController:
-    # !!! ПАРТИЯ DI ЗАБРАТЬ У ВАС КОШКА PERFORMANCE
     return InviteController(
         team_controller=team_controller,
         user_controller=team_controller.user_controller,

@@ -1,5 +1,6 @@
-from fastapi import Depends
 from .exceptions import UserServiceError
+from functools import lru_cache
+from fastapi import Depends
 from typing import Protocol
 from os import environ
 import httpx
@@ -31,11 +32,13 @@ class UserController(IUserController):
             raise UserServiceError()
 
 
+@lru_cache
 async def get_http_client():
     async with httpx.AsyncClient() as client:
         yield client
 
 
+@lru_cache
 def get_user_controller(
     client: httpx.AsyncClient = Depends(get_http_client),
 ) -> UserController:
