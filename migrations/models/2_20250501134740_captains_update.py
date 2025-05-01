@@ -5,7 +5,11 @@ async def upgrade(db: BaseDBAsyncClient) -> str:
     return """
         DROP INDEX IF EXISTS "uid_teams_owner_i_c7afa3";
         ALTER TABLE "teammatesmodel" ADD "is_captain" BOOL NOT NULL;
-        ALTER TABLE "teams" DROP COLUMN "owner_id";"""
+        ALTER TABLE "teams" DROP COLUMN "owner_id";
+
+        DELETE FROM "teammatesmodel";
+        DELETE FROM "teams";
+        """
 
 
 async def downgrade(db: BaseDBAsyncClient) -> str:
