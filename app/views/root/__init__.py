@@ -24,17 +24,32 @@ async def create_team(
 
 
 @router.get(
-    "/info/{id}",
+    "/info/{team_id}",
     response_model=TeamWithMatesDto,
     summary="Получение инфоромации о команде",
 )
 async def get_info(
-    id: int, controller: ITeamController = Depends(get_team_controller)
+    team_id: int, controller: ITeamController = Depends(get_team_controller)
 ):
     """
     Возвращает информацию о команде. Помимо информации, сюда входит список всех участников.
     """
-    return await controller.get_info(id)
+    return await controller.get_info(team_id)
+
+
+@router.get(
+    "/info",
+    response_model=TeamWithMatesDto,
+    summary="Получение инфоромации о своей команде",
+)
+async def get_info_by_user(
+    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    controller: ITeamController = Depends(get_team_controller),
+):
+    """
+    Возвращает информацию о команде залогиненного пользователя. Помимо информации, сюда входит список всех участников.
+    """
+    return await controller.get_by_mate(user_dto.user_id)
 
 
 @router.post(

@@ -39,7 +39,7 @@ async def invite_user(
     return await controller.invite_user(owner_dto.team_dto.id, user_id)
 
 
-@router.post("/{id}", summary="Принятие приглашения")
+@router.post("/{team_id}", summary="Принятие приглашения")
 async def accept_invite(
     team_id: int,
     user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
@@ -51,7 +51,7 @@ async def accept_invite(
     return await controller.accept(team_id, user_dto.user_id)
 
 
-@router.delete("/{id}", summary="Отказ от приглашения")
+@router.delete("/{team_id}", summary="Отказ от приглашения")
 async def decline_invite(
     team_id: int,
     user_dto: AccessJWTPayloadDto = Depends(get_user_dto),

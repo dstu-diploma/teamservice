@@ -33,6 +33,7 @@ class ITeamController(Protocol):
     async def get_info(self, team_id: int) -> TeamWithMatesDto: ...
     async def update_name(self, team_id: int, new_name: str) -> TeamDto: ...
     async def delete(self, team_id: int) -> None: ...
+    async def get_by_mate(self, user_id: int) -> TeamWithMatesDto: ...
     async def get_by_captain(self, captain_id: int) -> TeamDto: ...
     async def get_all(self) -> list[TeamDto]: ...
 
@@ -88,6 +89,14 @@ class TeamController(ITeamController):
     async def delete(self, team_id: int) -> None:
         team = await self._get_team_by_id(team_id)
         await team.delete()
+
+    async def get_by_mate(self, user_id: int) -> TeamWithMatesDto:
+        mate = await self.mate_controller.get_mate(user_id)
+
+        if mate is None:
+            raise UserNotInTeamException()
+
+        return await self.get_info(mate.team_id)
 
     async def get_by_captain(self, captain_id: int) -> TeamDto:
         mate = await self.mate_controller.get_mate(captain_id)

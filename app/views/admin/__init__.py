@@ -38,14 +38,15 @@ async def change_name(
     )
 
 
-@router.delete("/{id}", summary="Удаление команды")
+@router.delete("/{team_id}", summary="Удаление команды")
 async def delete_team(
-    id: int, team_controller: ITeamController = Depends(get_team_controller)
+    team_id: int,
+    team_controller: ITeamController = Depends(get_team_controller),
 ):
     """
     Удаляет команду из списка команд.
     """
-    return await team_controller.delete(id)
+    return await team_controller.delete(team_id)
 
 
 @router.post(
