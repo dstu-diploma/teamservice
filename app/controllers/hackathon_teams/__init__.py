@@ -1,26 +1,64 @@
-from app.models.hackathon_team import (
-    HackathonTeamMatesModel,
-    HackathonTeamModel,
-)
-from app.controllers.hackathon import IHackathonController
-from app.controllers.mate import IMateController
-from app.controllers.team import ITeamController
-from app.controllers.mate.exceptions import NotAMemberException
+from app.controllers.mate import IMateController, get_mate_controller
+from app.controllers.team import ITeamController, get_team_controller
 from app.controllers.team.exceptions import TeamDoesNotExistException
+from app.controllers.mate.exceptions import NotAMemberException
+from functools import lru_cache
+from typing import Protocol
+from fastapi import Depends
+
 from .exceptions import (
     CantEditHackathonTeamsException,
     CantMakeSuchLargeTeamException,
     MateTeamMismatchException,
     TeamDoesNotFitHackathonException,
 )
+
 from .dto import (
     HackathonTeamDto,
     HackathonTeamMateDto,
     HackathonTeamWithMatesDto,
 )
 
+from app.models.hackathon_team import (
+    HackathonTeamMatesModel,
+    HackathonTeamModel,
+)
 
-class HackathonTeamsController:
+from app.controllers.hackathon import (
+    IHackathonController,
+    get_hackathon_controller,
+)
+
+
+class IHackathonTeamsController(Protocol):
+    hackathon_controller: IHackathonController
+    brand_mate_controller: IMateController
+    brand_team_controller: ITeamController
+
+    async def get_registered_users_count(self, hackathon_id: int) -> int: ...
+    async def get_mates(self, team_id: int) -> list[HackathonTeamMateDto]: ...
+    async def get_mate(self, user_id: int) -> HackathonTeamMateDto: ...
+    async def get_by_id(self, team_id: int) -> HackathonTeamDto: ...
+    async def get_total(self, team_id: int) -> HackathonTeamWithMatesDto: ...
+    async def create(
+        self, brand_team_id: int, hackathon_id: int, mate_user_ids: list[int]
+    ) -> HackathonTeamWithMatesDto: ...
+    async def set_mate_is_captain(
+        self, mate_user_id: int, is_captain: bool
+    ) -> HackathonTeamMateDto: ...
+    async def remove_mate(self, mate_user_id: int) -> HackathonTeamMateDto: ...
+    async def add_mate(
+        self,
+        from_brand_team_id: int,
+        to_hackathon_team_id: int,
+        mate_user_id: int,
+    ) -> HackathonTeamMateDto: ...
+    async def get_captains(
+        self, team_id: int
+    ) -> list[HackathonTeamMateDto]: ...
+
+
+class HackathonTeamsController(IHackathonTeamsController):
     hackathon_controller: IHackathonController
     brand_mate_controller: IMateController
     brand_team_controller: ITeamController
@@ -56,7 +94,7 @@ class HackathonTeamsController:
         return HackathonTeamMateDto.from_tortoise(await self._get_mate(user_id))
 
     async def _get_by_id(self, team_id: int) -> HackathonTeamModel:
-        team = await HackathonTeamModel.get_or_none(team_id=team_id)
+        team = await HackathonTeamModel.get_or_none(id=team_id)
         if team is None:
             raise TeamDoesNotExistException()
 
@@ -64,6 +102,17 @@ class HackathonTeamsController:
 
     async def get_by_id(self, team_id: int) -> HackathonTeamDto:
         return HackathonTeamDto.from_tortoise(await self._get_by_id(team_id))
+
+    async def get_total(self, team_id: int) -> HackathonTeamWithMatesDto:
+        team = await self._get_by_id(team_id)
+        mates = await self.get_mates(team_id)
+
+        return HackathonTeamWithMatesDto(
+            id=team.id,
+            hackathon_id=team.hackathon_id,
+            name=team.name,
+            mates=mates,
+        )
 
     async def create(
         self, brand_team_id: int, hackathon_id: int, mate_user_ids: list[int]
@@ -119,7 +168,7 @@ class HackathonTeamsController:
         mate = await self._get_mate(mate_user_id)
 
         if not await self.hackathon_controller.can_edit_team_registry(
-            mate.team__hackathon_id
+            (await mate.team).hackathon_id
         ):
             raise CantEditHackathonTeamsException()
 
@@ -132,17 +181,21 @@ class HackathonTeamsController:
         team = await self._get_by_id(team_id)
         await team.delete()
 
-    async def remove_mate(self, mate_user_id: int):
+    async def remove_mate(self, mate_user_id: int) -> HackathonTeamMateDto:
         mate = await self._get_mate(mate_user_id)
 
         if not await self.hackathon_controller.can_edit_team_registry(
-            mate.team__hackathon_id
+            (await mate.team).hackathon_id
         ):
             raise CantEditHackathonTeamsException()
 
         total_mates = await self.get_mates(mate.team_id)
         if len(total_mates) == 1:
-            return await self._delete_team(mate.team_id)
+            await self._delete_team(mate.team_id)
+        else:
+            await mate.delete()
+
+        return HackathonTeamMateDto.from_tortoise(mate)
 
     async def add_mate(
         self,
@@ -170,3 +223,26 @@ class HackathonTeamsController:
         )
 
         return HackathonTeamMateDto.from_tortoise(hackathon_mate)
+
+    async def get_captains(self, team_id: int) -> list[HackathonTeamMateDto]:
+        captains = await HackathonTeamMatesModel.filter(
+            team_id=team_id, is_captain=True
+        )
+        return [
+            HackathonTeamMateDto.from_tortoise(captain) for captain in captains
+        ]
+
+
+@lru_cache
+def get_hackathon_teams_controller(
+    hackathon_controller: IHackathonController = Depends(
+        get_hackathon_controller
+    ),
+    brand_mate_controller: IMateController = Depends(get_mate_controller),
+    brand_team_controller: ITeamController = Depends(get_team_controller),
+) -> HackathonTeamsController:
+    return HackathonTeamsController(
+        hackathon_controller=hackathon_controller,
+        brand_mate_controller=brand_mate_controller,
+        brand_team_controller=brand_team_controller,
+    )
