@@ -24,7 +24,7 @@ async def get_user_invites(
 
 
 @router.post(
-    "/invite/{id}",
+    "/create/{user_id}",
     response_model=TeamInviteDto,
     summary="Приглашение пользователя",
 )

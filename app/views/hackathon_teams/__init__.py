@@ -15,7 +15,7 @@ from app.views.mate.exceptions import NoMoreCaptainsException
 from .dto import CreateHackathonTeamDto
 
 
-router = APIRouter(tags=["Хакатоновские команды"], prefix="/hack-teams")
+router = APIRouter(tags=["Хакатоновские команды"], prefix="/hackathon")
 
 
 @router.post(
@@ -62,7 +62,7 @@ async def get_my_hack_team_info(
     return await controller.get_total(mate.team_id)
 
 
-@router.put("/set-captain-rights", summary="Изменение прав капитанства")
+@router.put("/mate/captain-rights", summary="Изменение прав капитанства")
 async def set_mate_is_captain(
     dto: MateCaptainRightsDto,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),

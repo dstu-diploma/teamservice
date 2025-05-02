@@ -29,12 +29,12 @@ async def get_team_mates(
     raise NotAMemberException()
 
 
-@router.post(
+@router.put(
     "/captain-rights",
     response_model=TeamMateDto,
     summary="Установка прав капитана",
 )
-async def change_owner(
+async def set_captain_rights(
     dto: MateCaptainRightsDto,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
     mate_controller: IMateController = Depends(get_mate_controller),
