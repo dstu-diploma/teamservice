@@ -1,0 +1,172 @@
+from app.models.hackathon_team import (
+    HackathonTeamMatesModel,
+    HackathonTeamModel,
+)
+from app.controllers.hackathon import IHackathonController
+from app.controllers.mate import IMateController
+from app.controllers.team import ITeamController
+from app.controllers.mate.exceptions import NotAMemberException
+from app.controllers.team.exceptions import TeamDoesNotExistException
+from .exceptions import (
+    CantEditHackathonTeamsException,
+    CantMakeSuchLargeTeamException,
+    MateTeamMismatchException,
+    TeamDoesNotFitHackathonException,
+)
+from .dto import (
+    HackathonTeamDto,
+    HackathonTeamMateDto,
+    HackathonTeamWithMatesDto,
+)
+
+
+class HackathonTeamsController:
+    hackathon_controller: IHackathonController
+    brand_mate_controller: IMateController
+    brand_team_controller: ITeamController
+
+    def __init__(
+        self,
+        hackathon_controller: IHackathonController,
+        brand_mate_controller: IMateController,
+        brand_team_controller: ITeamController,
+    ):
+        self.hackathon_controller = hackathon_controller
+        self.brand_mate_controller = brand_mate_controller
+        self.brand_team_controller = brand_team_controller
+
+    async def get_registered_users_count(self, hackathon_id: int) -> int:
+        return await HackathonTeamMatesModel.filter(
+            team__hackathon_id=hackathon_id
+        ).count()
+
+    async def get_mates(self, team_id: int) -> list[HackathonTeamMateDto]:
+        mates = await HackathonTeamMatesModel.filter(team_id=team_id)
+
+        return [HackathonTeamMateDto.from_tortoise(mate) for mate in mates]
+
+    async def _get_mate(self, user_id: int) -> HackathonTeamMatesModel:
+        mate = await HackathonTeamMatesModel.get_or_none(user_id=user_id)
+        if mate is None:
+            raise NotAMemberException()
+
+        return mate
+
+    async def get_mate(self, user_id: int) -> HackathonTeamMateDto:
+        return HackathonTeamMateDto.from_tortoise(await self._get_mate(user_id))
+
+    async def _get_by_id(self, team_id: int) -> HackathonTeamModel:
+        team = await HackathonTeamModel.get_or_none(team_id=team_id)
+        if team is None:
+            raise TeamDoesNotExistException()
+
+        return team
+
+    async def get_by_id(self, team_id: int) -> HackathonTeamDto:
+        return HackathonTeamDto.from_tortoise(await self._get_by_id(team_id))
+
+    async def create(
+        self, brand_team_id: int, hackathon_id: int, mate_user_ids: list[int]
+    ) -> HackathonTeamWithMatesDto:
+        if not await self.hackathon_controller.can_edit_team_registry(
+            hackathon_id
+        ):
+            raise CantEditHackathonTeamsException()
+
+        hackathon = await self.hackathon_controller.get_hackathon_data(
+            hackathon_id
+        )
+
+        brand_team = await self.brand_team_controller.get_info(brand_team_id)
+        filtered_brand_mates = [
+            brand_mate
+            for brand_mate in brand_team.mates
+            if brand_mate.user_id in mate_user_ids
+        ]
+
+        mates_count = len(filtered_brand_mates)
+
+        if mates_count > hackathon.max_team_mates_count:
+            raise CantMakeSuchLargeTeamException()
+
+        if (
+            await self.get_registered_users_count(hackathon_id) + mates_count
+            > hackathon.max_participant_count
+        ):
+            raise TeamDoesNotFitHackathonException()
+
+        hackathon_team = await HackathonTeamModel.create(
+            hackathon_id=hackathon_id, name=brand_team.name
+        )
+
+        for mate in filtered_brand_mates:
+            await HackathonTeamMatesModel.create(
+                team_id=hackathon_team.id,
+                user_id=mate.user_id,
+                is_captain=mate.is_captain,
+            )
+
+        return HackathonTeamWithMatesDto(
+            id=hackathon_team.id,
+            hackathon_id=hackathon_id,
+            name=hackathon_team.name,
+            mates=await self.get_mates(hackathon_team.id),
+        )
+
+    async def set_mate_is_captain(
+        self, mate_user_id: int, is_captain: bool
+    ) -> HackathonTeamMateDto:
+        mate = await self._get_mate(mate_user_id)
+
+        if not await self.hackathon_controller.can_edit_team_registry(
+            mate.team__hackathon_id
+        ):
+            raise CantEditHackathonTeamsException()
+
+        mate.is_captain = is_captain
+        await mate.save()
+
+        return HackathonTeamMateDto.from_tortoise(mate)
+
+    async def _delete_team(self, team_id: int) -> None:
+        team = await self._get_by_id(team_id)
+        await team.delete()
+
+    async def remove_mate(self, mate_user_id: int):
+        mate = await self._get_mate(mate_user_id)
+
+        if not await self.hackathon_controller.can_edit_team_registry(
+            mate.team__hackathon_id
+        ):
+            raise CantEditHackathonTeamsException()
+
+        total_mates = await self.get_mates(mate.team_id)
+        if len(total_mates) == 1:
+            return await self._delete_team(mate.team_id)
+
+    async def add_mate(
+        self,
+        from_brand_team_id: int,
+        to_hackathon_team_id: int,
+        mate_user_id: int,
+    ) -> HackathonTeamMateDto:
+        hackathon_team = await self.get_by_id(to_hackathon_team_id)
+        if not await self.hackathon_controller.can_edit_team_registry(
+            hackathon_team.hackathon_id
+        ):
+            raise CantEditHackathonTeamsException()
+
+        brand_mate = await self.brand_mate_controller.get_mate(mate_user_id)
+        if brand_mate is None:
+            raise NotAMemberException()
+
+        if brand_mate.team_id != from_brand_team_id:
+            raise MateTeamMismatchException()
+
+        hackathon_mate = await HackathonTeamMatesModel.create(
+            team_id=to_hackathon_team_id,
+            user_id=mate_user_id,
+            is_captain=brand_mate.is_captain,
+        )
+
+        return HackathonTeamMateDto.from_tortoise(hackathon_mate)
