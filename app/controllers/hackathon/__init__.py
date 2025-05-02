@@ -34,7 +34,7 @@ class HackathonController(IHackathonController):
                 return HackathonDto(**data)
             else:
                 raise HTTPException(
-                    status_code=response.status_code, detail=data.detail
+                    status_code=response.status_code, detail=data["detail"]
                 )
         except httpx.HTTPError as e:
             raise HackathonServiceError()
@@ -46,10 +46,10 @@ class HackathonController(IHackathonController):
             response = await self.client.get(url, headers=self.headers)
             data = response.json()
             if response.status_code == 200:
-                return data.can_edit
+                return data["can_edit"]
             else:
                 raise HTTPException(
-                    status_code=response.status_code, detail=data.detail
+                    status_code=response.status_code, detail=data["detail"]
                 )
         except httpx.HTTPError as e:
             raise HackathonServiceError()
