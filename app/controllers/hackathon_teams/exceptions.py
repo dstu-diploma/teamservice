@@ -9,6 +9,22 @@ class CantEditHackathonTeamsException(HTTPException):
         )
 
 
+class CantCreateEmptyTeamException(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=400,
+            detail="Команда не может существовать без участников!",
+        )
+
+
+class UserAlreadyParticipatingInHackathonException(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=400,
+            detail=f"Один из пользователей уже участвует в хакатоне!",
+        )
+
+
 class CantMakeSuchLargeTeamException(HTTPException):
     def __init__(self):
         super().__init__(

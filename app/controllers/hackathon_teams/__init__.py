@@ -2,15 +2,17 @@ from app.controllers.mate import IMateController, get_mate_controller
 from app.controllers.team import ITeamController, get_team_controller
 from app.controllers.team.exceptions import TeamDoesNotExistException
 from app.controllers.mate.exceptions import NotAMemberException
+from typing import Protocol, cast
 from functools import lru_cache
-from typing import Protocol
 from fastapi import Depends
 
 from .exceptions import (
+    CantCreateEmptyTeamException,
     CantEditHackathonTeamsException,
     CantMakeSuchLargeTeamException,
     MateTeamMismatchException,
     TeamDoesNotFitHackathonException,
+    UserAlreadyParticipatingInHackathonException,
 )
 
 from .dto import (
@@ -130,30 +132,36 @@ class HackathonTeamsController(IHackathonTeamsController):
         ):
             raise TeamDoesNotFitHackathonException()
 
+    # :skull:
     async def create(
         self, brand_team_id: int, hackathon_id: int, mate_user_ids: list[int]
     ) -> HackathonTeamWithMatesDto:
+        if len(mate_user_ids) == 0:
+            raise CantCreateEmptyTeamException()
+
         if not await self.hackathon_controller.can_edit_team_registry(
             hackathon_id
         ):
             raise CantEditHackathonTeamsException()
 
         brand_team = await self.brand_team_controller.get_info(brand_team_id)
-        filtered_brand_mates = [
+        brand_mates = [
             brand_mate
             for brand_mate in brand_team.mates
             if brand_mate.user_id in mate_user_ids
         ]
 
-        await self._validate_hackathon_limits(
-            hackathon_id, len(filtered_brand_mates)
-        )
+        for mate in brand_mates:
+            if await self.get_mate(mate.user_id):
+                raise UserAlreadyParticipatingInHackathonException()
+
+        await self._validate_hackathon_limits(hackathon_id, len(brand_mates))
 
         hackathon_team = await HackathonTeamModel.create(
             hackathon_id=hackathon_id, name=brand_team.name
         )
 
-        for mate in filtered_brand_mates:
+        for mate in brand_mates:
             await HackathonTeamMatesModel.create(
                 team_id=hackathon_team.id,
                 user_id=mate.user_id,
@@ -194,9 +202,11 @@ class HackathonTeamsController(IHackathonTeamsController):
         ):
             raise CantEditHackathonTeamsException()
 
-        total_mates = await self.get_mates(mate.team_id)
+        team_id = cast(int, mate.team_id)  # type: ignore[attr-defined]
+
+        total_mates = await self.get_mates(team_id)
         if len(total_mates) == 1:
-            await self._delete_team(mate.team_id)
+            await self._delete_team(team_id)
         else:
             await mate.delete()
 
