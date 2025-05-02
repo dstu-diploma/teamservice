@@ -114,26 +114,12 @@ class HackathonTeamsController(IHackathonTeamsController):
             mates=mates,
         )
 
-    async def create(
-        self, brand_team_id: int, hackathon_id: int, mate_user_ids: list[int]
-    ) -> HackathonTeamWithMatesDto:
-        if not await self.hackathon_controller.can_edit_team_registry(
-            hackathon_id
-        ):
-            raise CantEditHackathonTeamsException()
-
+    async def _validate_hackathon_limits(
+        self, hackathon_id: int, mates_count: int
+    ):
         hackathon = await self.hackathon_controller.get_hackathon_data(
             hackathon_id
         )
-
-        brand_team = await self.brand_team_controller.get_info(brand_team_id)
-        filtered_brand_mates = [
-            brand_mate
-            for brand_mate in brand_team.mates
-            if brand_mate.user_id in mate_user_ids
-        ]
-
-        mates_count = len(filtered_brand_mates)
 
         if mates_count > hackathon.max_team_mates_count:
             raise CantMakeSuchLargeTeamException()
@@ -143,6 +129,25 @@ class HackathonTeamsController(IHackathonTeamsController):
             > hackathon.max_participant_count
         ):
             raise TeamDoesNotFitHackathonException()
+
+    async def create(
+        self, brand_team_id: int, hackathon_id: int, mate_user_ids: list[int]
+    ) -> HackathonTeamWithMatesDto:
+        if not await self.hackathon_controller.can_edit_team_registry(
+            hackathon_id
+        ):
+            raise CantEditHackathonTeamsException()
+
+        brand_team = await self.brand_team_controller.get_info(brand_team_id)
+        filtered_brand_mates = [
+            brand_mate
+            for brand_mate in brand_team.mates
+            if brand_mate.user_id in mate_user_ids
+        ]
+
+        await self._validate_hackathon_limits(
+            hackathon_id, len(filtered_brand_mates)
+        )
 
         hackathon_team = await HackathonTeamModel.create(
             hackathon_id=hackathon_id, name=brand_team.name
@@ -208,6 +213,11 @@ class HackathonTeamsController(IHackathonTeamsController):
             hackathon_team.hackathon_id
         ):
             raise CantEditHackathonTeamsException()
+
+        await self._validate_hackathon_limits(
+            hackathon_team.hackathon_id,
+            len(await self.get_mates(to_hackathon_team_id)) + 1,
+        )
 
         brand_mate = await self.brand_mate_controller.get_mate(mate_user_id)
         if brand_mate is None:
