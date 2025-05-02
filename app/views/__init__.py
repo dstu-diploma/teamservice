@@ -1,3 +1,4 @@
+from .hackathon_teams import router as hackathon_teams_router
 from .internal import router as internal_router
 from .invite import router as invite_router
 from .admin import router as admin_router
@@ -9,5 +10,6 @@ main_router = APIRouter()
 main_router.include_router(root_router)
 main_router.include_router(invite_router)
 main_router.include_router(mate_router)
+main_router.include_router(hackathon_teams_router)
 main_router.include_router(internal_router)
 main_router.include_router(admin_router)
