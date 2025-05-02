@@ -58,6 +58,9 @@ class IHackathonTeamsController(Protocol):
     async def get_captains(
         self, team_id: int
     ) -> list[HackathonTeamMateDto]: ...
+    async def get_hackathon_teams(
+        self, hackathon_id: int
+    ) -> list[HackathonTeamDto]: ...
 
 
 class HackathonTeamsController(IHackathonTeamsController):
@@ -251,6 +254,12 @@ class HackathonTeamsController(IHackathonTeamsController):
         return [
             HackathonTeamMateDto.from_tortoise(captain) for captain in captains
         ]
+
+    async def get_hackathon_teams(
+        self, hackathon_id: int
+    ) -> list[HackathonTeamDto]:
+        teams = await HackathonTeamModel.filter(hackathon_id=hackathon_id)
+        return [HackathonTeamDto.from_tortoise(team) for team in teams]
 
 
 @lru_cache
