@@ -95,6 +95,26 @@ async def set_mate_is_captain(
 
 
 @router.delete(
+    "/{hackathon_id}/mate/",
+    response_model=HackathonTeamMateDto,
+    summary="Удаление участника",
+)
+async def leave_team(
+    hackathon_id: int,
+    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    controller: IHackathonTeamsController = Depends(
+        get_hackathon_teams_controller
+    ),
+):
+    """
+    Удаляет текущего пользователя из команды.
+    Если в команде больше не останется участников, то она будет удалена.
+    """
+    current_mate = await controller.get_mate(user_dto.user_id, hackathon_id)
+    return await controller.remove_mate(current_mate.team_id, user_dto.user_id)
+
+
+@router.delete(
     "/{hackathon_id}/mate/{user_id}/",
     response_model=HackathonTeamMateDto,
     summary="Удаление участника",
