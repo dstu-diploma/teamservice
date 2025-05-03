@@ -17,10 +17,11 @@ class IMateController(Protocol):
 
     async def get_mate(self, user_id: int) -> TeamMateDto | None: ...
     async def get_mates(self, team_id: int) -> list[TeamMateDto]: ...
+    async def get_mate_count(self, team_id: int) -> int: ...
     async def add(
         self, team_id: int, user_id: int, is_captain: bool
     ) -> TeamMateDto: ...
-    async def remove(self, user_id: int) -> None: ...
+    async def remove(self, user_id: int) -> TeamMateDto: ...
     async def set_is_captain(
         self, user_id: int, is_captain: bool
     ) -> TeamMateDto: ...
@@ -49,6 +50,9 @@ class MateController(IMateController):
 
         return [TeamMateDto.from_tortoise(mate) for mate in mates]
 
+    async def get_mate_count(self, team_id: int) -> int:
+        return await TeamMatesModel.filter(team_id=team_id).count()
+
     async def add(
         self, team_id: int, user_id: int, is_captain: bool
     ) -> TeamMateDto:
@@ -63,12 +67,13 @@ class MateController(IMateController):
         )
         return TeamMateDto.from_tortoise(mate)
 
-    async def remove(self, user_id: int) -> None:
+    async def remove(self, user_id: int) -> TeamMateDto:
         if not await self.user_controller.get_user_exists(user_id):
             raise UserDoesNotExistException()
 
         mate = await self._get_mate(user_id)
         await mate.delete()
+        return TeamMateDto.from_tortoise(mate)
 
     async def set_is_captain(
         self, user_id: int, is_captain: bool
