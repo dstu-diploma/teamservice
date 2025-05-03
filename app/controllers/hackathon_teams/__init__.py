@@ -7,7 +7,10 @@ from typing import Protocol, cast
 from functools import lru_cache
 from fastapi import Depends
 
+from teamservice.app.controllers.mate.dto import TeamMateDto
+
 from .exceptions import (
+    CantCreateTeamWithoutCaptainException,
     UserAlreadyParticipatingInHackathonException,
     ThisBrandTeamAlreadyParticipatesException,
     TeamDoesNotFitHackathonException,
@@ -191,6 +194,12 @@ class HackathonTeamsController(IHackathonTeamsController):
         for mate in brand_mates:
             if await self.mate_exists(mate.user_id, hackathon_id):
                 raise UserAlreadyParticipatingInHackathonException()
+
+        if len(brand_mates) == 0:
+            raise CantCreateEmptyTeamException()
+
+        if not any(filter(lambda mate: mate.is_captain, brand_mates)):
+            raise CantCreateTeamWithoutCaptainException()
 
         await self._validate_hackathon_limits(hackathon_id, len(brand_mates))
 

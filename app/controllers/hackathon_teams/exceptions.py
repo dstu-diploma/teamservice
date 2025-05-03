@@ -55,3 +55,11 @@ class MateTeamMismatchException(HTTPException):
             status_code=400,
             detail="Данный пользователь принадлежит другой команде!",
         )
+
+
+class CantCreateTeamWithoutCaptainException(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=400,
+            detail="Невозможно создать команду без капитана!",
+        )
