@@ -2,12 +2,12 @@ from app.controllers.mate import IMateController, get_mate_controller
 from app.controllers.team import ITeamController, get_team_controller
 from app.controllers.team.exceptions import TeamDoesNotExistException
 from app.controllers.mate.exceptions import NotAMemberException
+from app.controllers.mate.dto import TeamMateDto
 from tortoise.transactions import in_transaction
 from typing import Protocol, cast
 from functools import lru_cache
 from fastapi import Depends
 
-from teamservice.app.controllers.mate.dto import TeamMateDto
 
 from .exceptions import (
     CantCreateTeamWithoutCaptainException,
@@ -198,7 +198,9 @@ class HackathonTeamsController(IHackathonTeamsController):
         if len(brand_mates) == 0:
             raise CantCreateEmptyTeamException()
 
-        if not any(filter(lambda mate: mate.is_captain, brand_mates)):
+        if not any(
+            filter(lambda mate: cast(TeamMateDto, mate).is_captain, brand_mates)
+        ):
             raise CantCreateTeamWithoutCaptainException()
 
         await self._validate_hackathon_limits(hackathon_id, len(brand_mates))
