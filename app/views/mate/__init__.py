@@ -33,6 +33,49 @@ async def get_team_mates(
     raise NotAMemberException()
 
 
+async def _delete_mate(
+    user_id: int,
+    mate_controller: IMateController,
+    team_controller: ITeamController,
+    team_id: int | None = None,
+) -> TeamMateDto:
+    mate = await mate_controller.get_mate(user_id)
+
+    if mate is None:
+        raise NotAMemberException()
+
+    if team_id is None:
+        team_id = mate.team_id
+
+    if mate.team_id != team_id:
+        raise NotYourMateException()
+
+    await mate_controller.remove(user_id)
+    if await mate_controller.get_mate_count(team_id) == 0:
+        await team_controller.delete(team_id)
+
+    return mate
+
+
+@router.delete(
+    "/",
+    response_model=TeamMateDto,
+    summary="Выход из команды",
+)
+async def leave_team(
+    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    mate_controller: IMateController = Depends(get_mate_controller),
+    team_controller: ITeamController = Depends(get_team_controller),
+):
+    """
+    Удаляет текущего пользователя из команды-бренда.
+    Если в команде больше не останется участников, то она будет удалена.
+    """
+    return await _delete_mate(
+        user_dto.user_id, mate_controller, team_controller
+    )
+
+
 @router.delete(
     "/{user_id}",
     response_model=TeamMateDto,
@@ -48,20 +91,9 @@ async def delete_mate(
     Удаляет участника команды-бренда. Текущий пользователь должен быть капитаном.
     Если в команде больше не останется участников, то она будет удалена.
     """
-    team_id = owner_dto.team_dto.id
-    mate = await mate_controller.get_mate(user_id)
-
-    if mate is None:
-        raise NotAMemberException()
-
-    if mate.team_id != team_id:
-        raise NotYourMateException()
-
-    await mate_controller.remove(user_id)
-    if await mate_controller.get_mate_count(team_id) == 0:
-        await team_controller.delete(team_id)
-
-    return mate
+    return await _delete_mate(
+        user_id, mate_controller, team_controller, owner_dto.team_dto.id
+    )
 
 
 @router.put(
