@@ -46,11 +46,12 @@ async def create_hackathon_team(
 
 
 @router.get(
-    "/my",
+    "/{hackathon_id}/my",
     response_model=HackathonTeamWithMatesDto,
     summary="Получение информации о команде пользователя",
 )
 async def get_my_hack_team_info(
+    hackathon_id: int,
     user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
     controller: IHackathonTeamsController = Depends(
         get_hackathon_teams_controller
@@ -59,12 +60,15 @@ async def get_my_hack_team_info(
     """
     Возвращает полную информацию о хакатоновской команде текущего пользователя (если он в ней состоит).
     """
-    mate = await controller.get_mate(user_dto.user_id)
+    mate = await controller.get_mate(user_dto.user_id, hackathon_id)
     return await controller.get_total(mate.team_id)
 
 
-@router.put("/mate/captain-rights", summary="Изменение прав капитанства")
+@router.put(
+    "/{hackathon_id}/mate/captain-rights", summary="Изменение прав капитанства"
+)
 async def set_mate_is_captain(
+    hackathon_id: int,
     dto: MateCaptainRightsDto,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
     controller: IHackathonTeamsController = Depends(
@@ -82,15 +86,21 @@ async def set_mate_is_captain(
     ):
         raise NoMoreCaptainsException()
 
-    await controller.set_mate_is_captain(dto.user_id, dto.is_captain)
+    current_mate = await controller.get_mate(
+        owner_dto.user_dto.user_id, hackathon_id
+    )
+    await controller.set_mate_is_captain(
+        current_mate.team_id, dto.user_id, dto.is_captain
+    )
 
 
 @router.delete(
-    "/mate/{user_id}/",
+    "/{hackathon_id}/mate/{user_id}/",
     response_model=HackathonTeamMateDto,
     summary="Удаление участника",
 )
 async def remove_mate(
+    hackathon_id: int,
     user_id: int,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
     controller: IHackathonTeamsController = Depends(
@@ -101,15 +111,19 @@ async def remove_mate(
     Удаляет участника хакатоновской команды. Текущий пользователь должен быть капитаном команды.
     Если в команде больше не останется участников, то она будет удалена.
     """
-    return await controller.remove_mate(user_id)
+    current_mate = await controller.get_mate(
+        owner_dto.user_dto.user_id, hackathon_id
+    )
+    return await controller.remove_mate(current_mate.team_id, user_id)
 
 
 @router.post(
-    "/mate/{user_id}/",
+    "/{hackathon_id}/mate/{user_id}/",
     response_model=HackathonTeamMateDto,
     summary="Добавление участника",
 )
 async def add_mate(
+    hackathon_id: int,
     user_id: int,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
     controller: IHackathonTeamsController = Depends(
@@ -120,7 +134,9 @@ async def add_mate(
     Добавляет участника хакатоновской команды. Права капитанства наследуются автоматически.
     Текущий пользователь должен быть капитаном.
     """
-    owner_hack_mate = await controller.get_mate(owner_dto.user_dto.user_id)
+    current_mate = await controller.get_mate(
+        owner_dto.user_dto.user_id, hackathon_id
+    )
     return await controller.add_mate(
-        owner_dto.team_dto.id, owner_hack_mate.team_id, user_id
+        owner_dto.team_dto.id, current_mate.team_id, user_id
     )

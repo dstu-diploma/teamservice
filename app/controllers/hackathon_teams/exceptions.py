@@ -21,7 +21,7 @@ class UserAlreadyParticipatingInHackathonException(HTTPException):
     def __init__(self):
         super().__init__(
             status_code=400,
-            detail=f"Один из пользователей уже участвует в хакатоне!",
+            detail=f"Один из пользователей уже участвует в данном хакатоне!",
         )
 
 
@@ -29,7 +29,7 @@ class CantMakeSuchLargeTeamException(HTTPException):
     def __init__(self):
         super().__init__(
             status_code=400,
-            detail="В данном хакатоне нельзя делать такую боьшую команду!",
+            detail="В данном хакатоне нельзя делать такую большую команду!",
         )
 
 

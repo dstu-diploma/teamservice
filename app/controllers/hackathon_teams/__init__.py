@@ -39,16 +39,21 @@ class IHackathonTeamsController(Protocol):
 
     async def get_registered_users_count(self, hackathon_id: int) -> int: ...
     async def get_mates(self, team_id: int) -> list[HackathonTeamMateDto]: ...
-    async def get_mate(self, user_id: int) -> HackathonTeamMateDto: ...
+    async def mate_exists(self, user_id: int, hackathon_id: int) -> bool: ...
+    async def get_mate(
+        self, user_id: int, hackathon_id: int
+    ) -> HackathonTeamMateDto: ...
     async def get_by_id(self, team_id: int) -> HackathonTeamDto: ...
     async def get_total(self, team_id: int) -> HackathonTeamWithMatesDto: ...
     async def create(
         self, brand_team_id: int, hackathon_id: int, mate_user_ids: list[int]
     ) -> HackathonTeamWithMatesDto: ...
     async def set_mate_is_captain(
-        self, mate_user_id: int, is_captain: bool
+        self, team_id: int, mate_user_id: int, is_captain: bool
     ) -> HackathonTeamMateDto: ...
-    async def remove_mate(self, mate_user_id: int) -> HackathonTeamMateDto: ...
+    async def remove_mate(
+        self, team_id: int, mate_user_id: int
+    ) -> HackathonTeamMateDto: ...
     async def add_mate(
         self,
         from_brand_team_id: int,
@@ -88,15 +93,30 @@ class HackathonTeamsController(IHackathonTeamsController):
 
         return [HackathonTeamMateDto.from_tortoise(mate) for mate in mates]
 
-    async def _get_mate(self, user_id: int) -> HackathonTeamMatesModel:
-        mate = await HackathonTeamMatesModel.get_or_none(user_id=user_id)
+    async def _get_mate(
+        self, user_id: int, hackathon_id: int
+    ) -> HackathonTeamMatesModel:
+        mate = await HackathonTeamMatesModel.get_or_none(
+            user_id=user_id, team__hackathon_id=hackathon_id
+        )
         if mate is None:
             raise NotAMemberException()
 
         return mate
 
-    async def get_mate(self, user_id: int) -> HackathonTeamMateDto:
-        return HackathonTeamMateDto.from_tortoise(await self._get_mate(user_id))
+    async def mate_exists(self, user_id: int, hackathon_id: int) -> bool:
+        mate = await HackathonTeamMatesModel.get_or_none(
+            user_id=user_id, team__hackathon_id=hackathon_id
+        )
+
+        return mate is not None
+
+    async def get_mate(
+        self, user_id: int, hackathon_id: int
+    ) -> HackathonTeamMateDto:
+        return HackathonTeamMateDto.from_tortoise(
+            await self._get_mate(user_id, hackathon_id)
+        )
 
     async def _get_by_id(self, team_id: int) -> HackathonTeamModel:
         team = await HackathonTeamModel.get_or_none(id=team_id)
@@ -155,7 +175,7 @@ class HackathonTeamsController(IHackathonTeamsController):
         ]
 
         for mate in brand_mates:
-            if await self.get_mate(mate.user_id):
+            if await self.mate_exists(mate.user_id, hackathon_id):
                 raise UserAlreadyParticipatingInHackathonException()
 
         await self._validate_hackathon_limits(hackathon_id, len(brand_mates))
@@ -179,9 +199,9 @@ class HackathonTeamsController(IHackathonTeamsController):
         )
 
     async def set_mate_is_captain(
-        self, mate_user_id: int, is_captain: bool
+        self, hackathon_id: int, mate_user_id: int, is_captain: bool
     ) -> HackathonTeamMateDto:
-        mate = await self._get_mate(mate_user_id)
+        mate = await self._get_mate(mate_user_id, hackathon_id)
 
         if not await self.hackathon_controller.can_edit_team_registry(
             (await mate.team).hackathon_id
@@ -197,8 +217,10 @@ class HackathonTeamsController(IHackathonTeamsController):
         team = await self._get_by_id(team_id)
         await team.delete()
 
-    async def remove_mate(self, mate_user_id: int) -> HackathonTeamMateDto:
-        mate = await self._get_mate(mate_user_id)
+    async def remove_mate(
+        self, hackathon_id: int, mate_user_id: int
+    ) -> HackathonTeamMateDto:
+        mate = await self._get_mate(mate_user_id, hackathon_id)
 
         if not await self.hackathon_controller.can_edit_team_registry(
             (await mate.team).hackathon_id

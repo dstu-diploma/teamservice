@@ -5,10 +5,11 @@ from tortoise import fields
 class HackathonTeamModel(Model):
     id = fields.IntField(pk=True)
     hackathon_id = fields.IntField()
-    name = fields.CharField(max_length=40, unique=True)
+    name = fields.CharField(max_length=40)
 
     class Meta:
         table: str = "hackathon_teams"
+        unique_together = (("name", "hackathon_id"),)
 
 
 class HackathonTeamMatesModel(Model):
@@ -19,5 +20,8 @@ class HackathonTeamMatesModel(Model):
             on_delete=fields.CASCADE,
         )
     )
-    user_id = fields.IntField(unique=True)
+    user_id = fields.IntField()
     is_captain = fields.BooleanField()
+
+    class Meta:
+        unique_together = (("team", "user_id"),)
