@@ -2,23 +2,25 @@ from app.controllers.mate import IMateController, get_mate_controller
 from app.controllers.team import ITeamController, get_team_controller
 from app.controllers.team.exceptions import TeamDoesNotExistException
 from app.controllers.mate.exceptions import NotAMemberException
+from tortoise.transactions import in_transaction
 from typing import Protocol, cast
 from functools import lru_cache
 from fastapi import Depends
 
 from .exceptions import (
-    CantCreateEmptyTeamException,
+    UserAlreadyParticipatingInHackathonException,
+    ThisBrandTeamAlreadyParticipatesException,
+    TeamDoesNotFitHackathonException,
     CantEditHackathonTeamsException,
     CantMakeSuchLargeTeamException,
+    CantCreateEmptyTeamException,
     MateTeamMismatchException,
-    TeamDoesNotFitHackathonException,
-    UserAlreadyParticipatingInHackathonException,
 )
 
 from .dto import (
-    HackathonTeamDto,
-    HackathonTeamMateDto,
     HackathonTeamWithMatesDto,
+    HackathonTeamMateDto,
+    HackathonTeamDto,
 )
 
 from app.models.hackathon_team import (
@@ -27,8 +29,8 @@ from app.models.hackathon_team import (
 )
 
 from app.controllers.hackathon import (
-    IHackathonController,
     get_hackathon_controller,
+    IHackathonController,
 )
 
 
@@ -45,6 +47,9 @@ class IHackathonTeamsController(Protocol):
     ) -> HackathonTeamMateDto: ...
     async def get_by_id(self, team_id: int) -> HackathonTeamDto: ...
     async def get_total(self, team_id: int) -> HackathonTeamWithMatesDto: ...
+    async def get_team_by_name_exists(
+        self, name: str, hackathon_id: int
+    ) -> bool: ...
     async def create(
         self, brand_team_id: int, hackathon_id: int, mate_user_ids: list[int]
     ) -> HackathonTeamWithMatesDto: ...
@@ -105,11 +110,9 @@ class HackathonTeamsController(IHackathonTeamsController):
         return mate
 
     async def mate_exists(self, user_id: int, hackathon_id: int) -> bool:
-        mate = await HackathonTeamMatesModel.get_or_none(
+        return await HackathonTeamMatesModel.exists(
             user_id=user_id, team__hackathon_id=hackathon_id
         )
-
-        return mate is not None
 
     async def get_mate(
         self, user_id: int, hackathon_id: int
@@ -155,6 +158,13 @@ class HackathonTeamsController(IHackathonTeamsController):
         ):
             raise TeamDoesNotFitHackathonException()
 
+    async def get_team_by_name_exists(
+        self, name: str, hackathon_id: int
+    ) -> bool:
+        return await HackathonTeamModel.exists(
+            name=name, hackathon_id=hackathon_id
+        )
+
     # :skull:
     async def create(
         self, brand_team_id: int, hackathon_id: int, mate_user_ids: list[int]
@@ -168,6 +178,10 @@ class HackathonTeamsController(IHackathonTeamsController):
             raise CantEditHackathonTeamsException()
 
         brand_team = await self.brand_team_controller.get_info(brand_team_id)
+
+        if await self.get_team_by_name_exists(brand_team.name, hackathon_id):
+            raise ThisBrandTeamAlreadyParticipatesException()
+
         brand_mates = [
             brand_mate
             for brand_mate in brand_team.mates
@@ -180,23 +194,24 @@ class HackathonTeamsController(IHackathonTeamsController):
 
         await self._validate_hackathon_limits(hackathon_id, len(brand_mates))
 
-        hackathon_team = await HackathonTeamModel.create(
-            hackathon_id=hackathon_id, name=brand_team.name
-        )
-
-        for mate in brand_mates:
-            await HackathonTeamMatesModel.create(
-                team_id=hackathon_team.id,
-                user_id=mate.user_id,
-                is_captain=mate.is_captain,
+        async with in_transaction():
+            hackathon_team = await HackathonTeamModel.create(
+                hackathon_id=hackathon_id, name=brand_team.name
             )
 
-        return HackathonTeamWithMatesDto(
-            id=hackathon_team.id,
-            hackathon_id=hackathon_id,
-            name=hackathon_team.name,
-            mates=await self.get_mates(hackathon_team.id),
-        )
+            for mate in brand_mates:
+                await HackathonTeamMatesModel.create(
+                    team_id=hackathon_team.id,
+                    user_id=mate.user_id,
+                    is_captain=mate.is_captain,
+                )
+
+            return HackathonTeamWithMatesDto(
+                id=hackathon_team.id,
+                hackathon_id=hackathon_id,
+                name=hackathon_team.name,
+                mates=await self.get_mates(hackathon_team.id),
+            )
 
     async def set_mate_is_captain(
         self, hackathon_id: int, mate_user_id: int, is_captain: bool
