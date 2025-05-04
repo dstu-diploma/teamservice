@@ -18,6 +18,7 @@ class TeamMatesModel(Model):
     )
     user_id = fields.IntField(unique=True)
     is_captain = fields.BooleanField()
+    role_desc = fields.CharField(max_length=40, null=True)
 
 
 class TeamInvitesModel(Model):

@@ -57,7 +57,10 @@ class IHackathonTeamsController(Protocol):
         self, brand_team_id: int, hackathon_id: int, mate_user_ids: list[int]
     ) -> HackathonTeamWithMatesDto: ...
     async def set_mate_is_captain(
-        self, team_id: int, mate_user_id: int, is_captain: bool
+        self, hackathon_id: int, mate_user_id: int, is_captain: bool
+    ) -> HackathonTeamMateDto: ...
+    async def set_mate_role_desc(
+        self, team_id: int, mate_user_id: int, role_desc: str
     ) -> HackathonTeamMateDto: ...
     async def remove_mate(
         self, team_id: int, mate_user_id: int
@@ -215,6 +218,7 @@ class HackathonTeamsController(IHackathonTeamsController):
                     team_id=hackathon_team.id,
                     user_id=mate.user_id,
                     is_captain=mate.is_captain,
+                    role_desc=mate.role_desc,
                 )
 
             return HackathonTeamWithMatesDto(
@@ -235,6 +239,21 @@ class HackathonTeamsController(IHackathonTeamsController):
             raise CantEditHackathonTeamsException()
 
         mate.is_captain = is_captain
+        await mate.save()
+
+        return HackathonTeamMateDto.from_tortoise(mate)
+
+    async def set_mate_role_desc(
+        self, hackathon_id: int, mate_user_id: int, role_desc: str
+    ) -> HackathonTeamMateDto:
+        mate = await self._get_mate(mate_user_id, hackathon_id)
+
+        if not await self.hackathon_controller.can_edit_team_registry(
+            (await mate.team).hackathon_id
+        ):
+            raise CantEditHackathonTeamsException()
+
+        mate.role_desc = role_desc
         await mate.save()
 
         return HackathonTeamMateDto.from_tortoise(mate)
@@ -291,6 +310,7 @@ class HackathonTeamsController(IHackathonTeamsController):
             team_id=to_hackathon_team_id,
             user_id=mate_user_id,
             is_captain=brand_mate.is_captain,
+            role_desc=brand_mate.role_desc,
         )
 
         return HackathonTeamMateDto.from_tortoise(hackathon_mate)

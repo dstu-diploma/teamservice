@@ -21,6 +21,7 @@ class HackathonTeamMateDto(BaseModel):
     team_id: int
     user_id: int
     is_captain: bool
+    role_desc: str
 
     @staticmethod
     def from_tortoise(mate: HackathonTeamMatesModel):
@@ -29,6 +30,7 @@ class HackathonTeamMateDto(BaseModel):
             team_id=mate.team_id,  # type: ignore[attr-defined]
             user_id=mate.user_id,
             is_captain=mate.is_captain,
+            role_desc=mate.role_desc,
         )
 
 

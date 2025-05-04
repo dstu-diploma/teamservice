@@ -22,6 +22,7 @@ class HackathonTeamMatesModel(Model):
     )
     user_id = fields.IntField()
     is_captain = fields.BooleanField()
+    role_desc = fields.CharField(max_length=40, null=True)
 
     class Meta:
         unique_together = (("team", "user_id"),)

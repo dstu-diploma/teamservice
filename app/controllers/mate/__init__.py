@@ -19,11 +19,17 @@ class IMateController(Protocol):
     async def get_mates(self, team_id: int) -> list[TeamMateDto]: ...
     async def get_mate_count(self, team_id: int) -> int: ...
     async def add(
-        self, team_id: int, user_id: int, is_captain: bool
+        self,
+        team_id: int,
+        user_id: int,
+        is_captain: bool,
     ) -> TeamMateDto: ...
     async def remove(self, user_id: int) -> TeamMateDto: ...
     async def set_is_captain(
         self, user_id: int, is_captain: bool
+    ) -> TeamMateDto: ...
+    async def set_role_desc(
+        self, user_id: int, role_desc: str
     ) -> TeamMateDto: ...
     async def get_captains(self, team_id: int) -> list[TeamMateDto]: ...
 
@@ -83,6 +89,16 @@ class MateController(IMateController):
 
         mate = await self._get_mate(user_id)
         mate.is_captain = is_captain
+        await mate.save()
+
+        return TeamMateDto.from_tortoise(mate)
+
+    async def set_role_desc(self, user_id: int, role_desc: str) -> TeamMateDto:
+        if not await self.user_controller.get_user_exists(user_id):
+            raise UserDoesNotExistException()
+
+        mate = await self._get_mate(user_id)
+        mate.role_desc = role_desc
         await mate.save()
 
         return TeamMateDto.from_tortoise(mate)

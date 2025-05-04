@@ -7,7 +7,7 @@ from app.views.mate.exceptions import (
     NotYourMateException,
 )
 from app.controllers.auth.dto import AccessJWTPayloadDto
-from app.views.mate.dto import MateCaptainRightsDto
+from app.views.mate.dto import MateCaptainRightsDto, MateRoleDescDto
 from app.controllers.mate.dto import TeamMateDto
 from app.controllers.auth import get_user_dto
 from fastapi import APIRouter, Depends
@@ -94,6 +94,29 @@ async def delete_mate(
     return await _delete_mate(
         user_id, mate_controller, team_controller, owner_dto.team_dto.id
     )
+
+
+@router.put(
+    "/role-desc",
+    response_model=TeamMateDto,
+    summary="Установить себе описание роли",
+)
+async def set_role_desc(
+    dto: MateRoleDescDto,
+    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    mate_controller: IMateController = Depends(get_mate_controller),
+):
+    """
+    Устанавливает текущему пользователю описание роли (наприме: Backend/Frontend; Python, Lua).
+    Текущий пользователь должен быть в команде.
+    """
+    mate_dto = await mate_controller.get_mate(user_dto.user_id)
+    if mate_dto:
+        return await mate_controller.set_role_desc(
+            user_dto.user_id, dto.role_desc
+        )
+
+    raise NotAMemberException()
 
 
 @router.put(

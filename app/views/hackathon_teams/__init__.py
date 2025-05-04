@@ -10,7 +10,7 @@ from app.controllers.hackathon_teams.dto import (
 )
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from app.controllers.auth import get_user_dto
-from app.views.mate.dto import MateCaptainRightsDto
+from app.views.mate.dto import MateCaptainRightsDto, MateRoleDescDto
 from app.views.mate.exceptions import NoMoreCaptainsException
 from .dto import CreateHackathonTeamDto
 
@@ -62,6 +62,29 @@ async def get_my_hack_team_info(
     """
     mate = await controller.get_mate(user_dto.user_id, hackathon_id)
     return await controller.get_total(mate.team_id)
+
+
+@router.put(
+    "/{hackathon_id}/mate/role-desc",
+    response_model=HackathonTeamWithMatesDto,
+    summary="Установить себе названия роли",
+)
+async def set_role_desc(
+    hackathon_id: int,
+    dto: MateRoleDescDto,
+    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    controller: IHackathonTeamsController = Depends(
+        get_hackathon_teams_controller
+    ),
+):
+    """
+    Устанавливает текущему пользователю описание роли (наприме: Backend/Frontend; Python, Lua).
+    Текущий пользователь должен быть в команде.
+    """
+    mate = await controller.get_mate(user_dto.user_id, hackathon_id)
+    return await controller.set_mate_role_desc(
+        mate.team_id, user_dto.user_id, dto.role_desc
+    )
 
 
 @router.put(
