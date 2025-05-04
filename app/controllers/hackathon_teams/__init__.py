@@ -77,6 +77,7 @@ class IHackathonTeamsController(Protocol):
     async def get_hackathon_teams(
         self, hackathon_id: int
     ) -> list[HackathonTeamDto]: ...
+    async def delete_team(self, team_id: int) -> HackathonTeamDto: ...
 
 
 class HackathonTeamsController(IHackathonTeamsController):
@@ -258,9 +259,10 @@ class HackathonTeamsController(IHackathonTeamsController):
 
         return HackathonTeamMateDto.from_tortoise(mate)
 
-    async def _delete_team(self, team_id: int) -> None:
+    async def delete_team(self, team_id: int) -> HackathonTeamDto:
         team = await self._get_by_id(team_id)
         await team.delete()
+        return HackathonTeamDto.from_tortoise(team)
 
     async def remove_mate(
         self, hackathon_id: int, mate_user_id: int
@@ -276,7 +278,7 @@ class HackathonTeamsController(IHackathonTeamsController):
 
         total_mates = await self.get_mates(team_id)
         if len(total_mates) == 1:
-            await self._delete_team(team_id)
+            await self.delete_team(team_id)
         else:
             await mate.delete()
 
