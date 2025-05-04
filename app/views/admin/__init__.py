@@ -1,10 +1,10 @@
 from app.controllers.mate import IMateController, get_mate_controller
 from app.controllers.team import ITeamController, get_team_controller
+from app.controllers.team.dto import TeamDto, TeamWithMatesDto
 from app.views.mate.dto import MateCaptainRightsDto
 from app.controllers.mate.dto import TeamMateDto
 from app.views.admin.dto import ChangeNameDto
 from app.controllers.auth import UserWithRole
-from app.controllers.team.dto import TeamDto
 from fastapi import APIRouter, Depends
 
 
@@ -36,6 +36,21 @@ async def change_name(
     return await team_controller.update_name(
         name_dto.team_id, name_dto.new_name
     )
+
+
+@router.get(
+    "/{team_id}",
+    response_model=TeamWithMatesDto,
+    summary="Полная информация о команде",
+)
+async def get_full_team_info(
+    team_id: int,
+    team_controller: ITeamController = Depends(get_team_controller),
+):
+    """
+    Возвращает полную информацию о команде.
+    """
+    return await team_controller.get_info(team_id)
 
 
 @router.delete("/{team_id}", summary="Удаление команды")
