@@ -81,14 +81,15 @@ async def set_role_desc(
     Устанавливает текущему пользователю описание роли (наприме: Backend/Frontend; Python, Lua).
     Текущий пользователь должен быть в команде.
     """
-    mate = await controller.get_mate(user_dto.user_id, hackathon_id)
     return await controller.set_mate_role_desc(
-        mate.team_id, user_dto.user_id, dto.role_desc
+        hackathon_id, user_dto.user_id, dto.role_desc
     )
 
 
 @router.put(
-    "/{hackathon_id}/mate/captain-rights", summary="Изменение прав капитанства"
+    "/{hackathon_id}/mate/captain-rights",
+    response_model=HackathonTeamMateDto,
+    summary="Изменение прав капитанства",
 )
 async def set_mate_is_captain(
     hackathon_id: int,
@@ -109,11 +110,8 @@ async def set_mate_is_captain(
     ):
         raise NoMoreCaptainsException()
 
-    current_mate = await controller.get_mate(
-        owner_dto.user_dto.user_id, hackathon_id
-    )
-    await controller.set_mate_is_captain(
-        current_mate.team_id, dto.user_id, dto.is_captain
+    return await controller.set_mate_is_captain(
+        hackathon_id, dto.user_id, dto.is_captain
     )
 
 
@@ -154,10 +152,7 @@ async def remove_mate(
     Удаляет участника хакатоновской команды. Текущий пользователь должен быть капитаном команды.
     Если в команде больше не останется участников, то она будет удалена.
     """
-    current_mate = await controller.get_mate(
-        owner_dto.user_dto.user_id, hackathon_id
-    )
-    return await controller.remove_mate(current_mate.team_id, user_id)
+    return await controller.remove_mate(hackathon_id, user_id)
 
 
 @router.post(

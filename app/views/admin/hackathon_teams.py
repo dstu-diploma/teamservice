@@ -93,9 +93,8 @@ async def set_role_desc(
     Устанавливает пользователю описание роли (например: Backend/Frontend; Python, Lua).
     Пользователь должен быть в команде.
     """
-    mate = await controller.get_mate(mate_user_id, hackathon_id)
     return await controller.set_mate_role_desc(
-        mate.team_id, mate_user_id, dto.role_desc
+        hackathon_id, mate_user_id, dto.role_desc
     )
 
 
@@ -116,9 +115,8 @@ async def set_mate_is_captain(
     """
     Устанавливает права капитана пользователю.
     """
-    current_mate = await controller.get_mate(mate_user_id, hackathon_id)
     return await controller.set_mate_is_captain(
-        current_mate.team_id, mate_user_id, dto.is_captain
+        hackathon_id, mate_user_id, dto.is_captain
     )
 
 
@@ -139,8 +137,7 @@ async def leave_team(
     Удаляет пользователя из команды.
     Если в команде больше не останется участников, то она будет удалена.
     """
-    current_mate = await controller.get_mate(mate_user_id, hackathon_id)
-    return await controller.remove_mate(current_mate.team_id, mate_user_id)
+    return await controller.remove_mate(hackathon_id, mate_user_id)
 
 
 @router.post(

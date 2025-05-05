@@ -60,10 +60,11 @@ class IHackathonTeamsController(Protocol):
         self, hackathon_id: int, mate_user_id: int, is_captain: bool
     ) -> HackathonTeamMateDto: ...
     async def set_mate_role_desc(
-        self, team_id: int, mate_user_id: int, role_desc: str
+        self, hackathon_id: int, mate_user_id: int, role_desc: str
     ) -> HackathonTeamMateDto: ...
+    async def delete_team(self, team_id: int) -> HackathonTeamDto: ...
     async def remove_mate(
-        self, team_id: int, mate_user_id: int
+        self, hackathon_id: int, mate_user_id: int
     ) -> HackathonTeamMateDto: ...
     async def add_mate(
         self,
@@ -77,7 +78,6 @@ class IHackathonTeamsController(Protocol):
     async def get_hackathon_teams(
         self, hackathon_id: int
     ) -> list[HackathonTeamDto]: ...
-    async def delete_team(self, team_id: int) -> HackathonTeamDto: ...
 
 
 class HackathonTeamsController(IHackathonTeamsController):
