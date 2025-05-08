@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends
-
-from app.controllers.auth import get_user_dto
-from app.controllers.auth.dto import AccessJWTPayloadDto
 from app.controllers.team import ITeamController, get_team_controller
-from app.controllers.team.dto import TeamDto, TeamWithMatesDto
 from app.views.dependencies import TeamOwnerDto, get_team_owner
+from app.controllers.team.dto import TeamDto, TeamWithMatesDto
+from app.controllers.auth.dto import AccessJWTPayloadDto
+from app.controllers.auth import PermittedAction
+from app.acl.permissions import Permissions
 from app.views.root.dto import TeamNameDto
+from fastapi import APIRouter, Depends
 
 
 router = APIRouter(tags=["Основное"], prefix="")
@@ -14,7 +14,9 @@ router = APIRouter(tags=["Основное"], prefix="")
 @router.post("/", response_model=TeamDto, summary="Создание команды")
 async def create_team(
     create_dto: TeamNameDto,
-    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    user_dto: AccessJWTPayloadDto = Depends(
+        PermittedAction(Permissions.CreateTeam)
+    ),
     controller: ITeamController = Depends(get_team_controller),
 ):
     """
@@ -29,7 +31,9 @@ async def create_team(
     summary="Получение инфоромации о команде",
 )
 async def get_info(
-    team_id: int, controller: ITeamController = Depends(get_team_controller)
+    team_id: int,
+    _=Depends(PermittedAction(Permissions.GetTeamInfo)),
+    controller: ITeamController = Depends(get_team_controller),
 ):
     """
     Возвращает информацию о команде. Помимо информации, сюда входит список всех участников.
@@ -43,7 +47,9 @@ async def get_info(
     summary="Получение инфоромации о своей команде",
 )
 async def get_info_by_user(
-    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    user_dto: AccessJWTPayloadDto = Depends(
+        PermittedAction(Permissions.GetTeamInfo)
+    ),
     controller: ITeamController = Depends(get_team_controller),
 ):
     """

@@ -1,18 +1,20 @@
+from app.views.mate.dto import MateCaptainRightsDto, MateRoleDescDto
 from app.views.dependencies import TeamOwnerDto, get_team_owner
+from app.views.mate.exceptions import NoMoreCaptainsException
+from app.controllers.auth.dto import AccessJWTPayloadDto
+from app.controllers.auth import PermittedAction
+from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
+from .dto import CreateHackathonTeamDto
+
 from app.controllers.hackathon_teams import (
-    IHackathonTeamsController,
     get_hackathon_teams_controller,
+    IHackathonTeamsController,
 )
 from app.controllers.hackathon_teams.dto import (
-    HackathonTeamMateDto,
     HackathonTeamWithMatesDto,
+    HackathonTeamMateDto,
 )
-from app.controllers.auth.dto import AccessJWTPayloadDto
-from app.controllers.auth import get_user_dto
-from app.views.mate.dto import MateCaptainRightsDto, MateRoleDescDto
-from app.views.mate.exceptions import NoMoreCaptainsException
-from .dto import CreateHackathonTeamDto
 
 
 router = APIRouter(tags=["Хакатоновские команды"], prefix="/hackathon")
@@ -52,7 +54,9 @@ async def create_hackathon_team(
 )
 async def get_my_hack_team_info(
     hackathon_id: int,
-    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    user_dto: AccessJWTPayloadDto = Depends(
+        PermittedAction(Permissions.CreateTeam)
+    ),
     controller: IHackathonTeamsController = Depends(
         get_hackathon_teams_controller
     ),
@@ -72,7 +76,9 @@ async def get_my_hack_team_info(
 async def set_role_desc(
     hackathon_id: int,
     dto: MateRoleDescDto,
-    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    user_dto: AccessJWTPayloadDto = Depends(
+        PermittedAction(Permissions.UpdateSelf)
+    ),
     controller: IHackathonTeamsController = Depends(
         get_hackathon_teams_controller
     ),
@@ -122,7 +128,9 @@ async def set_mate_is_captain(
 )
 async def leave_team(
     hackathon_id: int,
-    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    user_dto: AccessJWTPayloadDto = Depends(
+        PermittedAction(Permissions.UpdateSelf)
+    ),
     controller: IHackathonTeamsController = Depends(
         get_hackathon_teams_controller
     ),

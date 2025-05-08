@@ -22,9 +22,9 @@ class JWTParseErrorException(HTTPException):
         )
 
 
-class RestrictedRolesException(HTTPException):
-    def __init__(self, allowed_roles_str: str):
+class RestrictedPermissionException(HTTPException):
+    def __init__(self):
         super().__init__(
             status_code=403,
-            detail=f"У Вас недостаточно прав. Действие разрешено следующим ролям: {allowed_roles_str}",
+            detail=f"У Вас недостаточно прав для выполнения этого действия!",
         )

@@ -3,8 +3,9 @@ from app.controllers.team import ITeamController, get_team_controller
 from app.controllers.team.dto import TeamDto, TeamWithMatesDto
 from app.views.mate.dto import MateCaptainRightsDto
 from app.controllers.mate.dto import TeamMateDto
+from app.controllers.auth import PermittedAction
 from app.views.admin.dto import ChangeNameDto
-from app.controllers.auth import UserWithRole
+from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
 
 
@@ -15,7 +16,7 @@ router = APIRouter(
 
 @router.get("/", response_model=list[TeamDto], summary="Список всех команд")
 async def get_all_teams(
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.UpdateSelf)),
     team_controller: ITeamController = Depends(get_team_controller),
 ):
     """
@@ -27,7 +28,7 @@ async def get_all_teams(
 @router.post("/name", response_model=TeamDto, summary="Изменение названия")
 async def change_name(
     name_dto: ChangeNameDto,
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.UpdateBrandTeam)),
     team_controller: ITeamController = Depends(get_team_controller),
 ):
     """
@@ -45,7 +46,7 @@ async def change_name(
 )
 async def get_full_team_info(
     team_id: int,
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.GetAllTeams)),
     team_controller: ITeamController = Depends(get_team_controller),
 ):
     """
@@ -57,7 +58,7 @@ async def get_full_team_info(
 @router.delete("/{team_id}", summary="Удаление команды")
 async def delete_team(
     team_id: int,
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.DeleteBrandTeam)),
     team_controller: ITeamController = Depends(get_team_controller),
 ):
     """
@@ -73,7 +74,7 @@ async def delete_team(
 )
 async def change_owner(
     dto: MateCaptainRightsDto,
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.UpdateBrandTeam)),
     mate_controller: IMateController = Depends(get_mate_controller),
 ):
     """

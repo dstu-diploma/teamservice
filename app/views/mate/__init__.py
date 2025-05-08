@@ -1,16 +1,18 @@
 from app.controllers.mate import IMateController, get_mate_controller
 from app.controllers.team import ITeamController, get_team_controller
+from app.views.mate.dto import MateCaptainRightsDto, MateRoleDescDto
 from app.controllers.mate.exceptions import NotAMemberException
 from app.views.dependencies import TeamOwnerDto, get_team_owner
+from app.controllers.auth.dto import AccessJWTPayloadDto
+from app.controllers.mate.dto import TeamMateDto
+from app.controllers.auth import PermittedAction
+from app.acl.permissions import Permissions
+from fastapi import APIRouter, Depends
+
 from app.views.mate.exceptions import (
     NoMoreCaptainsException,
     NotYourMateException,
 )
-from app.controllers.auth.dto import AccessJWTPayloadDto
-from app.views.mate.dto import MateCaptainRightsDto, MateRoleDescDto
-from app.controllers.mate.dto import TeamMateDto
-from app.controllers.auth import get_user_dto
-from fastapi import APIRouter, Depends
 
 
 router = APIRouter(tags=["Основное"], prefix="/mate")
@@ -20,7 +22,9 @@ router = APIRouter(tags=["Основное"], prefix="/mate")
     "/", response_model=list[TeamMateDto], summary="Список участников группы"
 )
 async def get_team_mates(
-    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    user_dto: AccessJWTPayloadDto = Depends(
+        PermittedAction(Permissions.GetTeamInfo)
+    ),
     mate_controller: IMateController = Depends(get_mate_controller),
 ):
     """
@@ -63,7 +67,9 @@ async def _delete_mate(
     summary="Выход из команды",
 )
 async def leave_team(
-    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    user_dto: AccessJWTPayloadDto = Depends(
+        PermittedAction(Permissions.UpdateSelf)
+    ),
     mate_controller: IMateController = Depends(get_mate_controller),
     team_controller: ITeamController = Depends(get_team_controller),
 ):
@@ -103,11 +109,13 @@ async def delete_mate(
 )
 async def set_role_desc(
     dto: MateRoleDescDto,
-    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    user_dto: AccessJWTPayloadDto = Depends(
+        PermittedAction(Permissions.UpdateSelf)
+    ),
     mate_controller: IMateController = Depends(get_mate_controller),
 ):
     """
-    Устанавливает текущему пользователю описание роли (наприме: Backend/Frontend; Python, Lua).
+    Устанавливает текущему пользователю описание роли (например: Backend/Frontend; Python, Lua).
     Текущий пользователь должен быть в команде.
     """
     mate_dto = await mate_controller.get_mate(user_dto.user_id)

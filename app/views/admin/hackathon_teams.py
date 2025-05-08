@@ -1,4 +1,8 @@
-from app.controllers.auth import UserWithRole
+from app.controllers.team import ITeamController, get_team_controller
+from .dto import AdminAddMateDto, AdminMateCaptainRightsDto
+from app.controllers.auth import PermittedAction
+from app.views.mate.dto import MateRoleDescDto
+from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
 
 from app.controllers.hackathon_teams import (
@@ -6,13 +10,11 @@ from app.controllers.hackathon_teams import (
     IHackathonTeamsController,
 )
 from app.controllers.hackathon_teams.dto import (
-    HackathonTeamDto,
-    HackathonTeamMateDto,
     HackathonTeamWithMatesDto,
+    HackathonTeamMateDto,
+    HackathonTeamDto,
 )
-from app.views.mate.dto import MateRoleDescDto
-from app.controllers.team import ITeamController, get_team_controller
-from .dto import AdminAddMateDto, AdminMateCaptainRightsDto
+
 
 router = APIRouter(
     prefix="/hackathon",
@@ -26,7 +28,7 @@ router = APIRouter(
 )
 async def get_all_teams(
     hackathon_id: int,
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.GetAllTeams)),
     controller: IHackathonTeamsController = Depends(
         get_hackathon_teams_controller
     ),
@@ -45,7 +47,7 @@ async def get_all_teams(
 async def get_team_info(
     hackathon_id: int,
     team_id: int,
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.GetAllTeams)),
     controller: IHackathonTeamsController = Depends(
         get_hackathon_teams_controller
     ),
@@ -64,7 +66,7 @@ async def get_team_info(
 async def delete_team(
     hackathon_id: int,
     team_id: int,
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.DeleteHackathonTeam)),
     controller: IHackathonTeamsController = Depends(
         get_hackathon_teams_controller
     ),
@@ -84,7 +86,7 @@ async def set_role_desc(
     hackathon_id: int,
     mate_user_id: int,
     dto: MateRoleDescDto,
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.UpdateHackathonTeam)),
     controller: IHackathonTeamsController = Depends(
         get_hackathon_teams_controller
     ),
@@ -107,7 +109,7 @@ async def set_mate_is_captain(
     hackathon_id: int,
     mate_user_id: int,
     dto: AdminMateCaptainRightsDto,
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.UpdateHackathonTeam)),
     controller: IHackathonTeamsController = Depends(
         get_hackathon_teams_controller
     ),
@@ -128,7 +130,7 @@ async def set_mate_is_captain(
 async def leave_team(
     hackathon_id: int,
     mate_user_id: int,
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.UpdateHackathonTeam)),
     controller: IHackathonTeamsController = Depends(
         get_hackathon_teams_controller
     ),
@@ -149,7 +151,7 @@ async def add_mate(
     hackathon_id: int,
     mate_user_id: int,
     dto: AdminAddMateDto,
-    _=Depends(UserWithRole("admin")),
+    _=Depends(PermittedAction(Permissions.UpdateHackathonTeam)),
     brand_team_controller: ITeamController = Depends(get_team_controller),
     hack_team_controller: IHackathonTeamsController = Depends(
         get_hackathon_teams_controller

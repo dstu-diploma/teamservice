@@ -2,8 +2,10 @@ from app.controllers.invite import InviteController, get_invite_controller
 from app.views.dependencies import TeamOwnerDto, get_team_owner
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from app.controllers.invite.dto import TeamInviteDto
-from app.controllers.auth import get_user_dto
+from app.controllers.auth import PermittedAction
+from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
+
 
 router = APIRouter(tags=["Основное"], prefix="/invite")
 
@@ -14,7 +16,9 @@ router = APIRouter(tags=["Основное"], prefix="/invite")
     summary="Получение списка приглашений",
 )
 async def get_user_invites(
-    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    user_dto: AccessJWTPayloadDto = Depends(
+        PermittedAction(Permissions.UpdateSelf)
+    ),
     controller: InviteController = Depends(get_invite_controller),
 ):
     """
@@ -42,7 +46,9 @@ async def invite_user(
 @router.post("/{team_id}", summary="Принятие приглашения")
 async def accept_invite(
     team_id: int,
-    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    user_dto: AccessJWTPayloadDto = Depends(
+        PermittedAction(Permissions.AcceptInvite)
+    ),
     controller: InviteController = Depends(get_invite_controller),
 ):
     """
@@ -54,7 +60,9 @@ async def accept_invite(
 @router.delete("/{team_id}", summary="Отказ от приглашения")
 async def decline_invite(
     team_id: int,
-    user_dto: AccessJWTPayloadDto = Depends(get_user_dto),
+    user_dto: AccessJWTPayloadDto = Depends(
+        PermittedAction(Permissions.DeclineInvite)
+    ),
     controller: InviteController = Depends(get_invite_controller),
 ):
     """
