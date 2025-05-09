@@ -16,7 +16,7 @@ router = APIRouter(
 
 @router.get("/", response_model=list[TeamDto], summary="Список всех команд")
 async def get_all_teams(
-    _=Depends(PermittedAction(Permissions.UpdateSelf)),
+    _=Depends(PermittedAction(Permissions.GetAllTeams)),
     team_controller: ITeamController = Depends(get_team_controller),
 ):
     """
