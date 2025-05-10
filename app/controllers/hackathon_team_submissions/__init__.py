@@ -3,7 +3,6 @@ from app.controllers.s3 import IS3Controller, get_s3_controller
 from functools import lru_cache
 from typing import Protocol
 from fastapi import Depends
-from uuid import uuid4
 from . import utils
 import io
 
@@ -20,34 +19,32 @@ from app.controllers.hackathon import (
     get_hackathon_controller,
 )
 
-from app.controllers.hackathon_teams import (
-    IHackathonTeamsController,
-    get_hackathon_teams_controller,
-)
-
 
 class IHackathonTeamSubmissionsController(Protocol):
     hackathon_controller: IHackathonController
-    hackathon_team_controller: IHackathonTeamsController
     s3_controller: IS3Controller
 
     async def get_submission(
         self, hackathon_id: int, team_id: int
     ) -> HackathonTeamSubmissionDto | None: ...
     async def upload_team_submission(
-        self, hackathon_id: int, team_id: int, file: io.BytesIO
+        self, hackathon_id: int, filename: str, team_id: int, file: io.BytesIO
     ) -> HackathonTeamSubmissionDto: ...
+    def generate_redirect_link(
+        self,
+        base_url: str,
+        hackathon_id: int,
+        team_id: int,
+    ) -> str: ...
 
 
 class HackathonTeamSubmissionsController(IHackathonTeamSubmissionsController):
     def __init__(
         self,
         hackathon_controller: IHackathonController,
-        hackathon_team_controller: IHackathonTeamsController,
         s3_controller: IS3Controller,
     ):
         self.hackathon_controller = hackathon_controller
-        self.hackathon_team_controller = hackathon_team_controller
         self.s3_controller = s3_controller
 
     async def get_submission(
@@ -63,15 +60,12 @@ class HackathonTeamSubmissionsController(IHackathonTeamSubmissionsController):
         return None
 
     async def upload_team_submission(
-        self, hackathon_id: int, team_id: int, file: io.BytesIO
+        self, hackathon_id: int, filename: str, team_id: int, file: io.BytesIO
     ) -> HackathonTeamSubmissionDto:
         if not await self.hackathon_controller.can_upload_submissions(
             hackathon_id
         ):
             raise HackathonTeamCantUploadSubmissionsException()
-
-        team = await self.hackathon_team_controller.get_by_id(team_id)
-        filename = f"{team.name}_{uuid4()}"
 
         if utils.is_allowed_file(filename, file):
             raise HackathonFileTypeRestrictedException()
@@ -93,17 +87,25 @@ class HackathonTeamSubmissionsController(IHackathonTeamSubmissionsController):
 
         return HackathonTeamSubmissionDto.from_tortoise(submission)
 
+    def generate_redirect_link(
+        self,
+        base_url: str,
+        hackathon_id: int,
+        team_id: int,
+    ) -> str:
+        redirect_url = (
+            f"{base_url}/download/hackathon/{hackathon_id}/teams/{team_id}"
+        )
+        return redirect_url
+
 
 @lru_cache
 def get_hackathon_team_submissions_controller(
     hackathon_controller: IHackathonController = Depends(
         get_hackathon_controller
     ),
-    hackathon_team_controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
     s3_controller: IS3Controller = Depends(get_s3_controller),
 ) -> HackathonTeamSubmissionsController:
     return HackathonTeamSubmissionsController(
-        hackathon_controller, hackathon_team_controller, s3_controller
+        hackathon_controller, s3_controller
     )

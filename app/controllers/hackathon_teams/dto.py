@@ -9,11 +9,17 @@ class HackathonTeamDto(BaseModel):
     id: int
     hackathon_id: int
     name: str
+    submission_url: str | None = None
 
     @staticmethod
-    def from_tortoise(team: HackathonTeamModel):
+    def from_tortoise(
+        team: HackathonTeamModel, submission_url: str | None = None
+    ):
         return HackathonTeamDto(
-            id=team.id, name=team.name, hackathon_id=team.hackathon_id
+            id=team.id,
+            name=team.name,
+            hackathon_id=team.hackathon_id,
+            submission_url=submission_url,
         )
 
 

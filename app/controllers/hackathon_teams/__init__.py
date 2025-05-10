@@ -4,10 +4,15 @@ from app.controllers.team.exceptions import TeamDoesNotExistException
 from app.controllers.mate.exceptions import NotAMemberException
 from app.controllers.mate.dto import TeamMateDto
 from tortoise.transactions import in_transaction
+from fastapi import Depends, Request
 from typing import Protocol, cast
 from functools import lru_cache
-from fastapi import Depends
+from os import environ
 
+from app.controllers.hackathon_team_submissions import (
+    IHackathonTeamSubmissionsController,
+    get_hackathon_team_submissions_controller,
+)
 
 from .exceptions import (
     CantCreateTeamWithoutCaptainException,
@@ -36,11 +41,14 @@ from app.controllers.hackathon import (
     IHackathonController,
 )
 
+PUBLIC_API_URL = environ.get("PUBLIC_API_URL", "")
+
 
 class IHackathonTeamsController(Protocol):
     hackathon_controller: IHackathonController
     brand_mate_controller: IMateController
     brand_team_controller: ITeamController
+    submission_controller: IHackathonTeamSubmissionsController
 
     async def get_registered_users_count(self, hackathon_id: int) -> int: ...
     async def get_mates(self, team_id: int) -> list[HackathonTeamMateDto]: ...
@@ -81,19 +89,17 @@ class IHackathonTeamsController(Protocol):
 
 
 class HackathonTeamsController(IHackathonTeamsController):
-    hackathon_controller: IHackathonController
-    brand_mate_controller: IMateController
-    brand_team_controller: ITeamController
-
     def __init__(
         self,
         hackathon_controller: IHackathonController,
         brand_mate_controller: IMateController,
         brand_team_controller: ITeamController,
+        submission_controller: IHackathonTeamSubmissionsController,
     ):
         self.hackathon_controller = hackathon_controller
         self.brand_mate_controller = brand_mate_controller
         self.brand_team_controller = brand_team_controller
+        self.submission_controller = submission_controller
 
     async def get_registered_users_count(self, hackathon_id: int) -> int:
         return await HackathonTeamMatesModel.filter(
@@ -135,8 +141,32 @@ class HackathonTeamsController(IHackathonTeamsController):
 
         return team
 
+    async def _get_submission_url(
+        self,
+        hackathon_id: int,
+        team_id: int,
+    ) -> str | None:
+        submission = await self.submission_controller.get_submission(
+            hackathon_id, team_id
+        )
+
+        if submission:
+            return self.submission_controller.generate_redirect_link(
+                PUBLIC_API_URL,
+                hackathon_id,
+                team_id,
+            )
+
+        return None
+
     async def get_by_id(self, team_id: int) -> HackathonTeamDto:
-        return HackathonTeamDto.from_tortoise(await self._get_by_id(team_id))
+        team = await self._get_by_id(team_id)
+        return HackathonTeamDto.from_tortoise(
+            team,
+            submission_url=await self._get_submission_url(
+                team.hackathon_id, team.id
+            ),
+        )
 
     async def get_total(self, team_id: int) -> HackathonTeamWithMatesDto:
         team = await self._get_by_id(team_id)
@@ -147,6 +177,9 @@ class HackathonTeamsController(IHackathonTeamsController):
             hackathon_id=team.hackathon_id,
             name=team.name,
             mates=mates,
+            submission_url=await self._get_submission_url(
+                team.hackathon_id, team.id
+            ),
         )
 
     async def _validate_hackathon_limits(
@@ -329,7 +362,12 @@ class HackathonTeamsController(IHackathonTeamsController):
         self, hackathon_id: int
     ) -> list[HackathonTeamDto]:
         teams = await HackathonTeamModel.filter(hackathon_id=hackathon_id)
-        return [HackathonTeamDto.from_tortoise(team) for team in teams]
+        return [
+            HackathonTeamDto.from_tortoise(
+                team, await self._get_submission_url(hackathon_id, team.id)
+            )
+            for team in teams
+        ]
 
 
 @lru_cache
@@ -339,9 +377,13 @@ def get_hackathon_teams_controller(
     ),
     brand_mate_controller: IMateController = Depends(get_mate_controller),
     brand_team_controller: ITeamController = Depends(get_team_controller),
+    submission_controller: IHackathonTeamSubmissionsController = Depends(
+        get_hackathon_team_submissions_controller
+    ),
 ) -> HackathonTeamsController:
     return HackathonTeamsController(
         hackathon_controller=hackathon_controller,
         brand_mate_controller=brand_mate_controller,
         brand_team_controller=brand_team_controller,
+        submission_controller=submission_controller,
     )

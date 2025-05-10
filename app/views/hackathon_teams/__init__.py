@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, UploadFile
 from app.controllers.auth import PermittedAction
 from app.acl.permissions import Permissions
 from .dto import CreateHackathonTeamDto
+from urllib.parse import quote
+from uuid import uuid4
 import io
 
 from app.controllers.hackathon_team_submissions import (
@@ -216,6 +218,11 @@ async def upload_submission(
     current_mate = await team_controller.get_mate(
         owner_dto.user_dto.user_id, hackathon_id
     )
+    filename = quote(f"{current_mate.team_id}_{current_mate.user_id}_{uuid4()}")
+
     return await submission_controller.upload_team_submission(
-        hackathon_id, current_mate.team_id, io.BytesIO(await file.read())
+        hackathon_id,
+        filename,
+        current_mate.team_id,
+        io.BytesIO(await file.read()),
     )
