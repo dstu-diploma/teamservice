@@ -2,10 +2,19 @@ from app.views.mate.dto import MateCaptainRightsDto, MateRoleDescDto
 from app.views.dependencies import TeamOwnerDto, get_team_owner
 from app.views.mate.exceptions import NoMoreCaptainsException
 from app.controllers.auth.dto import AccessJWTPayloadDto
+from fastapi import APIRouter, Depends, UploadFile
 from app.controllers.auth import PermittedAction
 from app.acl.permissions import Permissions
-from fastapi import APIRouter, Depends
 from .dto import CreateHackathonTeamDto
+import io
+
+from app.controllers.hackathon_team_submissions import (
+    get_hackathon_team_submissions_controller,
+    IHackathonTeamSubmissionsController,
+)
+from app.controllers.hackathon_team_submissions.dto import (
+    HackathonTeamSubmissionDto,
+)
 
 from app.controllers.hackathon_teams import (
     get_hackathon_teams_controller,
@@ -185,4 +194,28 @@ async def add_mate(
     )
     return await controller.add_mate(
         owner_dto.team_dto.id, current_mate.team_id, user_id
+    )
+
+
+@router.put(
+    "/{hackathon_id}/submission",
+    response_model=HackathonTeamSubmissionDto,
+    summary="Загрузка результатов",
+)
+async def upload_submission(
+    hackathon_id: int,
+    file: UploadFile,
+    owner_dto: TeamOwnerDto = Depends(get_team_owner),
+    team_controller: IHackathonTeamsController = Depends(
+        get_hackathon_teams_controller
+    ),
+    submission_controller: IHackathonTeamSubmissionsController = Depends(
+        get_hackathon_team_submissions_controller
+    ),
+):
+    current_mate = await team_controller.get_mate(
+        owner_dto.user_dto.user_id, hackathon_id
+    )
+    return await submission_controller.upload_team_submission(
+        hackathon_id, current_mate.team_id, io.BytesIO(await file.read())
     )
