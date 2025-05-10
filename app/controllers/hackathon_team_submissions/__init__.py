@@ -67,12 +67,13 @@ class HackathonTeamSubmissionsController(IHackathonTeamSubmissionsController):
         ):
             raise HackathonTeamCantUploadSubmissionsException()
 
-        if utils.is_allowed_file(filename, file):
+        if not utils.is_allowed_file(filename, file):
             raise HackathonFileTypeRestrictedException()
 
         s3_key = f"team_submissions/{hackathon_id}/{team_id}/{filename}"
         content_type = utils.guess_content_type(filename)
 
+        file.seek(0)
         self.s3_controller.upload_file(file, "hackathons", s3_key, content_type)
 
         submission, _ = await HackathonTeamSubmissionModel.update_or_create(
@@ -94,7 +95,7 @@ class HackathonTeamSubmissionsController(IHackathonTeamSubmissionsController):
         team_id: int,
     ) -> str:
         redirect_url = (
-            f"{base_url}/download/hackathon/{hackathon_id}/teams/{team_id}"
+            f"{base_url}/download/submission/{hackathon_id}/{team_id}"
         )
         return redirect_url
 

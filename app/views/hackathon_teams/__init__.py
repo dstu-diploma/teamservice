@@ -218,7 +218,11 @@ async def upload_submission(
     current_mate = await team_controller.get_mate(
         owner_dto.user_dto.user_id, hackathon_id
     )
-    filename = quote(f"{current_mate.team_id}_{current_mate.user_id}_{uuid4()}")
+
+    filename = (
+        file.filename
+        or f"{current_mate.team_id}_{current_mate.user_id}_{uuid4()}"
+    )
 
     return await submission_controller.upload_team_submission(
         hackathon_id,
