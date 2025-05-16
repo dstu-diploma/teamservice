@@ -1,13 +1,10 @@
+from app.config import Settings
 from .exceptions import HackathonServiceError
 from functools import lru_cache
 from .dto import HackathonDto
 from fastapi import Depends, HTTPException
 from typing import Protocol
-from os import environ
 import httpx
-
-HACKATHON_SERVICE_URL = environ.get("HACKATHON_SERVICE_URL")
-HACKATHON_SERVICE_API_KEY = environ.get("HACKATHON_SERVICE_API_KEY")
 
 
 class IHackathonController(Protocol):
@@ -22,8 +19,10 @@ class HackathonController(IHackathonController):
         client: httpx.AsyncClient,
     ):
         self.client = client
-        self.base_url = HACKATHON_SERVICE_URL
-        self.headers = {"Authorization": f"Bearer {HACKATHON_SERVICE_API_KEY}"}
+        self.base_url = Settings.HACKATHON_SERVICE_URL
+        self.headers = {
+            "Authorization": f"Bearer {Settings.HACKATHON_SERVICE_API_KEY}"
+        }
 
     async def _do_get(self, url: str) -> dict:
         try:

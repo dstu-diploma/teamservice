@@ -2,10 +2,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.acl.permissions import PermissionAcl, perform_check
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from jose import ExpiredSignatureError, JWTError, jwt
+from app.config import Settings
 from pydantic import BaseModel
 from typing import Annotated
 from fastapi import Depends
-from os import environ
 
 from .exceptions import (
     InvalidTokenException,
@@ -15,7 +15,6 @@ from .exceptions import (
 )
 
 
-JWT_SECRET = environ.get("JWT_SECRET", "dstu")
 SECURITY_SCHEME = HTTPBearer(auto_error=False)
 
 
@@ -36,7 +35,7 @@ async def get_user_dto(
     token: str = Depends(get_token_from_header),
 ) -> AccessJWTPayloadDto:
     try:
-        raw_payload = jwt.decode(token, JWT_SECRET)
+        raw_payload = jwt.decode(token, Settings.JWT_SECRET)
         return AccessJWTPayloadDto(**raw_payload)
     except ExpiredSignatureError:
         raise TokenExpiredException()

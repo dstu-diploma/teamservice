@@ -1,11 +1,10 @@
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .exceptions import InvalidAuthException
+from app.config import Settings
 from fastapi import Depends
-from os import environ
 
 
 SECURITY_SCHEME = HTTPBearer(auto_error=False)
-API_KEY = environ.get("INTERNAL_API_KEY", "apikey")
 
 
 def get_token_from_header(
@@ -14,7 +13,7 @@ def get_token_from_header(
     if (
         credentials is None
         or credentials.scheme.lower() != "bearer"
-        or credentials.credentials != API_KEY
+        or credentials.credentials != Settings.INTERNAL_API_KEY
     ):
         raise InvalidAuthException()
     return credentials.credentials

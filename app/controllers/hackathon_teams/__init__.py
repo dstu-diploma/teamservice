@@ -4,10 +4,10 @@ from app.controllers.team.exceptions import TeamDoesNotExistException
 from app.controllers.mate.exceptions import NotAMemberException
 from app.controllers.mate.dto import TeamMateDto
 from tortoise.transactions import in_transaction
-from fastapi import Depends, Request
 from typing import Protocol, cast
 from functools import lru_cache
-from os import environ
+from app.config import Settings
+from fastapi import Depends
 
 from app.controllers.hackathon_team_submissions import (
     IHackathonTeamSubmissionsController,
@@ -40,8 +40,6 @@ from app.controllers.hackathon import (
     get_hackathon_controller,
     IHackathonController,
 )
-
-PUBLIC_API_URL = environ.get("PUBLIC_API_URL", "")
 
 
 class IHackathonTeamsController(Protocol):
@@ -152,7 +150,7 @@ class HackathonTeamsController(IHackathonTeamsController):
 
         if submission:
             return self.submission_controller.generate_redirect_link(
-                PUBLIC_API_URL,
+                Settings.PUBLIC_API_URL,
                 hackathon_id,
                 team_id,
             )

@@ -1,12 +1,9 @@
 from .exceptions import UserServiceError
 from functools import lru_cache
+from app.config import Settings
 from fastapi import Depends
 from typing import Protocol
-from os import environ
 import httpx
-
-USER_SERVICE_URL = environ.get("USER_SERVICE_URL")
-USER_SERVICE_API_KEY = environ.get("USER_SERVICE_API_KEY")
 
 
 class IUserController(Protocol):
@@ -19,8 +16,10 @@ class UserController(IUserController):
         client: httpx.AsyncClient,
     ):
         self.client = client
-        self.base_url = USER_SERVICE_URL
-        self.headers = {"Authorization": f"Bearer {USER_SERVICE_API_KEY}"}
+        self.base_url = Settings.USER_SERVICE_URL
+        self.headers = {
+            "Authorization": f"Bearer {Settings.USER_SERVICE_API_KEY}"
+        }
 
     async def get_user_exists(self, user_id: int) -> bool:
         url = f"{self.base_url}/{user_id}"
