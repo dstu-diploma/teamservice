@@ -1,16 +1,16 @@
-from app.services.s3 import IS3Service, get_s3_service
+from app.dependencies import get_hackathon_team_submissions_service, get_storage
 from fastapi.responses import StreamingResponse
+from app.ports.storage import IStoragePort
 from fastapi import APIRouter, Depends
 from urllib.parse import quote
 
-from app.services.hackathon_team_submissions import (
-    IHackathonTeamSubmissionsService,
-    get_hackathon_team_submissions_service,
-)
 from app.services.hackathon_team_submissions.exceptions import (
     HackathonTeamCantUploadSubmissionsException,
 )
 
+from app.services.hackathon_team_submissions.interface import (
+    IHackathonTeamSubmissionsService,
+)
 
 router = APIRouter(prefix="/download", include_in_schema=False)
 
@@ -22,7 +22,7 @@ async def download_team_submission(
     submission_service: IHackathonTeamSubmissionsService = Depends(
         get_hackathon_team_submissions_service
     ),
-    s3_service: IS3Service = Depends(get_s3_service),
+    s3_service: IStoragePort = Depends(get_storage),
 ):
     submission = await submission_service.get_submission(hackathon_id, team_id)
 

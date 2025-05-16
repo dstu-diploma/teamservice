@@ -1,19 +1,12 @@
-from app.config import Settings
-from .exceptions import HackathonServiceError
-from functools import lru_cache
-from .dto import HackathonDto
-from fastapi import Depends, HTTPException
-from typing import Protocol
+from fastapi import HTTPException
 import httpx
+from app.config import Settings
+from app.ports.hackathonservice import IHackathonServicePort
+from app.ports.hackathonservice.dto import HackathonDto
+from app.ports.hackathonservice.exceptions import HackathonServiceError
 
 
-class IHackathonService(Protocol):
-    async def get_hackathon_data(self, hackathon_id: int) -> HackathonDto: ...
-    async def can_edit_team_registry(self, hackathon_id: int) -> bool: ...
-    async def can_upload_submissions(self, hackathon_id: int) -> bool: ...
-
-
-class HackathonService(IHackathonService):
+class HackathonServiceAdapter(IHackathonServicePort):
     def __init__(
         self,
         client: httpx.AsyncClient,
@@ -57,10 +50,3 @@ class HackathonService(IHackathonService):
 async def get_http_client():
     async with httpx.AsyncClient() as client:
         yield client
-
-
-@lru_cache
-def get_hackathon_service(
-    client: httpx.AsyncClient = Depends(get_http_client),
-) -> HackathonService:
-    return HackathonService(client=client)

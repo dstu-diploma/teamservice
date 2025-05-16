@@ -1,7 +1,8 @@
-from app.services.team import ITeamService, get_team_service
+from app.services.brand_team.interface import ITeamService
 from app.services.auth.dto import AccessJWTPayloadDto
+from app.services.brand_team.dto import TeamDto
+from app.dependencies import get_team_service
 from app.services.auth import PermittedAction
-from app.services.team.dto import TeamDto
 from app.acl.permissions import Permissions
 from pydantic import BaseModel
 from fastapi import Depends

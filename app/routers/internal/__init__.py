@@ -1,11 +1,8 @@
-from app.services.team import ITeamService, get_team_service
+from app.dependencies import get_hackathon_teams_service, get_team_service
+from app.services.hackathon_teams.interface import IHackathonTeamsService
+from app.services.brand_team.interface import ITeamService
 from .auth import get_token_from_header
 from fastapi import APIRouter, Depends
-
-from app.services.hackathon_teams import (
-    IHackathonTeamsService,
-    get_hackathon_teams_service,
-)
 
 router = APIRouter(
     tags=["Internal"],

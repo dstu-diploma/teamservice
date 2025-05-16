@@ -1,14 +1,12 @@
-from app.services.team import ITeamService, get_team_service
+from app.dependencies import get_hackathon_teams_service, get_team_service
+from app.services.hackathon_teams.interface import IHackathonTeamsService
 from .dto import AdminAddMateDto, AdminMateCaptainRightsDto
-from app.services.auth import PermittedAction
+from app.services.brand_team.interface import ITeamService
 from app.routers.mate.dto import MateRoleDescDto
+from app.services.auth import PermittedAction
 from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
 
-from app.services.hackathon_teams import (
-    get_hackathon_teams_service,
-    IHackathonTeamsService,
-)
 from app.services.hackathon_teams.dto import (
     HackathonTeamWithMatesDto,
     HackathonTeamMateDto,

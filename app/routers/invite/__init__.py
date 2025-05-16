@@ -1,10 +1,12 @@
-from app.services.invite import InviteService, get_invite_service
 from app.routers.dependencies import TeamOwnerDto, get_team_owner
 from app.services.auth.dto import AccessJWTPayloadDto
 from app.services.invite.dto import TeamInviteDto
+from app.dependencies import get_invite_service
 from app.services.auth import PermittedAction
 from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
+
+from app.services.invite.service import InviteService
 
 
 router = APIRouter(tags=["Основное"], prefix="/invite")

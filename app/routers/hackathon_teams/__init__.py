@@ -1,3 +1,4 @@
+from app.services.hackathon_teams.interface import IHackathonTeamsService
 from app.routers.mate.dto import MateCaptainRightsDto, MateRoleDescDto
 from app.routers.dependencies import TeamOwnerDto, get_team_owner
 from app.routers.mate.exceptions import NoMoreCaptainsException
@@ -6,22 +7,22 @@ from fastapi import APIRouter, Depends, UploadFile
 from app.services.auth import PermittedAction
 from app.acl.permissions import Permissions
 from .dto import CreateHackathonTeamDto
-from urllib.parse import quote
 from uuid import uuid4
 import io
 
-from app.services.hackathon_team_submissions import (
+from app.dependencies import (
     get_hackathon_team_submissions_service,
+    get_hackathon_teams_service,
+)
+
+from app.services.hackathon_team_submissions.interface import (
     IHackathonTeamSubmissionsService,
 )
+
 from app.services.hackathon_team_submissions.dto import (
     HackathonTeamSubmissionDto,
 )
 
-from app.services.hackathon_teams import (
-    get_hackathon_teams_service,
-    IHackathonTeamsService,
-)
 from app.services.hackathon_teams.dto import (
     HackathonTeamWithMatesDto,
     HackathonTeamMateDto,

@@ -1,10 +1,11 @@
-from app.services.team import ITeamService, get_team_service
+from app.services.brand_team.dto import TeamDto, TeamWithMatesDto
 from app.routers.dependencies import TeamOwnerDto, get_team_owner
-from app.services.team.dto import TeamDto, TeamWithMatesDto
+from app.services.brand_team.interface import ITeamService
 from app.services.auth.dto import AccessJWTPayloadDto
+from app.dependencies import get_team_service
 from app.services.auth import PermittedAction
-from app.acl.permissions import Permissions
 from app.routers.root.dto import TeamNameDto
+from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
 
 

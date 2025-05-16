@@ -1,9 +1,10 @@
-from app.services.mate import IMateService, get_mate_service
-from app.services.team import ITeamService, get_team_service
 from app.routers.mate.dto import MateCaptainRightsDto, MateRoleDescDto
-from app.services.mate.exceptions import NotAMemberException
 from app.routers.dependencies import TeamOwnerDto, get_team_owner
+from app.dependencies import get_mate_service, get_team_service
+from app.services.mate.exceptions import NotAMemberException
+from app.services.brand_team.interface import ITeamService
 from app.services.auth.dto import AccessJWTPayloadDto
+from app.services.mate.interface import IMateService
 from app.services.mate.dto import TeamMateDto
 from app.services.auth import PermittedAction
 from app.acl.permissions import Permissions
@@ -13,7 +14,6 @@ from app.routers.mate.exceptions import (
     NoMoreCaptainsException,
     NotYourMateException,
 )
-
 
 router = APIRouter(tags=["Основное"], prefix="/mate")
 

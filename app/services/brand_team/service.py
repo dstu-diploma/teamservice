@@ -1,45 +1,24 @@
+from app.ports.userservice.exceptions import UserDoesNotExistException
 from app.services.mate.exceptions import AlreadyTeamMemberException
-from app.services.user.exceptions import UserDoesNotExistException
-from app.services.team.dto import TeamDto, TeamWithMatesDto
+from app.services.brand_team.dto import TeamDto, TeamWithMatesDto
+from app.services.brand_team.interface import ITeamService
+from app.services.mate.interface import IMateService
+from app.ports.userservice import IUserServicePort
 from tortoise.exceptions import IntegrityError
 from app.models.team import TeamModel
-from functools import lru_cache
-from fastapi import Depends
-from typing import Protocol
 
-from app.services.team.exceptions import (
+from app.services.brand_team.exceptions import (
+    UserIsNotOwnerOfTeamException,
     TeamNameAlreadyUsedException,
     TeamDoesNotExistException,
-    UserIsNotOwnerOfTeamException,
     UserNotInTeamException,
 )
-from app.services.user import (
-    IUserService,
-    get_user_service,
-)
-
-from app.services.mate import (
-    IMateService,
-    get_mate_service,
-)
-
-
-class ITeamService(Protocol):
-    user_service: IUserService
-    mate_service: IMateService
-
-    async def exists(self, team_id: int) -> bool: ...
-    async def create(self, name: str, owner_id: int) -> TeamDto: ...
-    async def get_info(self, team_id: int) -> TeamWithMatesDto: ...
-    async def update_name(self, team_id: int, new_name: str) -> TeamDto: ...
-    async def delete(self, team_id: int) -> None: ...
-    async def get_by_mate(self, user_id: int) -> TeamWithMatesDto: ...
-    async def get_by_captain(self, captain_id: int) -> TeamDto: ...
-    async def get_all(self) -> list[TeamDto]: ...
 
 
 class TeamService(ITeamService):
-    def __init__(self, user_service: IUserService, mate_service: IMateService):
+    def __init__(
+        self, user_service: IUserServicePort, mate_service: IMateService
+    ):
         self.user_service = user_service
         self.mate_service = mate_service
 
@@ -111,11 +90,3 @@ class TeamService(ITeamService):
     async def get_all(self) -> list[TeamDto]:
         teams = await TeamModel.all()
         return [TeamDto.from_tortoise(team) for team in teams]
-
-
-@lru_cache
-def get_team_service(
-    user_service: IUserService = Depends(get_user_service),
-    mate_service: IMateService = Depends(get_mate_service),
-) -> TeamService:
-    return TeamService(user_service, mate_service)

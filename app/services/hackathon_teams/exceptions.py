@@ -14,7 +14,7 @@ class ThisBrandTeamAlreadyParticipatesException(HTTPException):
         super().__init__(
             status_code=400,
             detail="Ваша команда-бренд уже участвует в данном хакатоне!",
-        ),
+        )
 
 
 class CantCreateEmptyTeamException(HTTPException):

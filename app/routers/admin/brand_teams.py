@@ -1,13 +1,13 @@
-from app.services.mate import IMateService, get_mate_service
-from app.services.team import ITeamService, get_team_service
-from app.services.team.dto import TeamDto, TeamWithMatesDto
+from app.services.brand_team.dto import TeamDto, TeamWithMatesDto
+from app.dependencies import get_mate_service, get_team_service
+from app.services.brand_team.interface import ITeamService
 from app.routers.mate.dto import MateCaptainRightsDto
+from app.services.mate.interface import IMateService
+from app.routers.admin.dto import ChangeNameDto
 from app.services.mate.dto import TeamMateDto
 from app.services.auth import PermittedAction
-from app.routers.admin.dto import ChangeNameDto
 from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
-
 
 router = APIRouter(
     prefix="/brand",
