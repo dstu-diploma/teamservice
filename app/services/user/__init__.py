@@ -6,11 +6,11 @@ from typing import Protocol
 import httpx
 
 
-class IUserController(Protocol):
+class IUserService(Protocol):
     async def get_user_exists(self, user_id: int) -> bool: ...
 
 
-class UserController(IUserController):
+class UserService(IUserService):
     def __init__(
         self,
         client: httpx.AsyncClient,
@@ -37,7 +37,7 @@ async def get_http_client():
 
 
 @lru_cache
-def get_user_controller(
+def get_user_service(
     client: httpx.AsyncClient = Depends(get_http_client),
-) -> UserController:
-    return UserController(client=client)
+) -> UserService:
+    return UserService(client=client)

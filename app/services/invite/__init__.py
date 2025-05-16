@@ -1,27 +1,27 @@
 from .exceptions import UserAlreadyInvitedException, NoSuchInviteException
-from app.controllers.mate.exceptions import AlreadyTeamMemberException
-from app.controllers.user.exceptions import UserDoesNotExistException
-from app.controllers.user import IUserController
+from app.services.mate.exceptions import AlreadyTeamMemberException
+from app.services.user.exceptions import UserDoesNotExistException
+from app.services.user import IUserService
 from app.models.team import TeamInvitesModel
 from functools import lru_cache
 from .dto import TeamInviteDto
 from typing import Protocol
 from fastapi import Depends
 
-from app.controllers.team import (
-    get_team_controller,
-    ITeamController,
+from app.services.team import (
+    get_team_service,
+    ITeamService,
 )
-from app.controllers.mate import (
-    get_mate_controller,
-    IMateController,
+from app.services.mate import (
+    get_mate_service,
+    IMateService,
 )
 
 
-class IInviteController(Protocol):
-    team_controller: ITeamController
-    user_controller: IUserController
-    mate_controller: IMateController
+class IInviteService(Protocol):
+    team_service: ITeamService
+    user_service: IUserService
+    mate_service: IMateService
 
     async def clear_by_user(self, user_id: int) -> None: ...
     async def invite_user(
@@ -32,28 +32,28 @@ class IInviteController(Protocol):
     async def accept(self, team_id: int, user_id: int) -> None: ...
 
 
-class InviteController(IInviteController):
+class InviteService(IInviteService):
     def __init__(
         self,
-        team_controller: ITeamController,
-        user_controller: IUserController,
-        mate_controller: IMateController,
+        team_service: ITeamService,
+        user_service: IUserService,
+        mate_service: IMateService,
     ):
-        self.team_controller = team_controller
-        self.user_controller = user_controller
-        self.mate_controller = mate_controller
+        self.team_service = team_service
+        self.user_service = user_service
+        self.mate_service = mate_service
 
     async def clear_by_user(self, user_id: int) -> None:
         await TeamInvitesModel.filter(user_id=user_id).delete()
 
     async def invite_user(self, team_id: int, user_id: int) -> TeamInviteDto:
-        if not await self.user_controller.get_user_exists(user_id):
+        if not await self.user_service.get_user_exists(user_id):
             raise UserDoesNotExistException()
 
         if await TeamInvitesModel.exists(team_id=team_id, user_id=user_id):
             raise UserAlreadyInvitedException()
 
-        if await self.mate_controller.get_mate(user_id):
+        if await self.mate_service.get_mate(user_id):
             raise AlreadyTeamMemberException()
 
         invite = await TeamInvitesModel.create(team_id=team_id, user_id=user_id)
@@ -77,17 +77,17 @@ class InviteController(IInviteController):
     # поэтому упрощаем
     async def accept(self, team_id: int, user_id: int) -> None:
         await self.decline(team_id, user_id)
-        await self.mate_controller.add(team_id, user_id, is_captain=False)
+        await self.mate_service.add(team_id, user_id, is_captain=False)
         await self.clear_by_user(user_id)
 
 
 @lru_cache
-def get_invite_controller(
-    team_controller: ITeamController = Depends(get_team_controller),
-    mate_controller: IMateController = Depends(get_mate_controller),
-) -> InviteController:
-    return InviteController(
-        team_controller=team_controller,
-        user_controller=team_controller.user_controller,
-        mate_controller=mate_controller,
+def get_invite_service(
+    team_service: ITeamService = Depends(get_team_service),
+    mate_service: IMateService = Depends(get_mate_service),
+) -> InviteService:
+    return InviteService(
+        team_service=team_service,
+        user_service=team_service.user_service,
+        mate_service=mate_service,
     )

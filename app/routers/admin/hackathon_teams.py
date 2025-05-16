@@ -1,15 +1,15 @@
-from app.controllers.team import ITeamController, get_team_controller
+from app.services.team import ITeamService, get_team_service
 from .dto import AdminAddMateDto, AdminMateCaptainRightsDto
-from app.controllers.auth import PermittedAction
+from app.services.auth import PermittedAction
 from app.routers.mate.dto import MateRoleDescDto
 from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
 
-from app.controllers.hackathon_teams import (
-    get_hackathon_teams_controller,
-    IHackathonTeamsController,
+from app.services.hackathon_teams import (
+    get_hackathon_teams_service,
+    IHackathonTeamsService,
 )
-from app.controllers.hackathon_teams.dto import (
+from app.services.hackathon_teams.dto import (
     HackathonTeamWithMatesDto,
     HackathonTeamMateDto,
     HackathonTeamDto,
@@ -29,14 +29,12 @@ router = APIRouter(
 async def get_all_teams(
     hackathon_id: int,
     _=Depends(PermittedAction(Permissions.GetAllTeams)),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Возвращает список всех команд для хакатона с заданным ID.
     """
-    return await controller.get_hackathon_teams(hackathon_id)
+    return await service.get_hackathon_teams(hackathon_id)
 
 
 @router.get(
@@ -48,14 +46,12 @@ async def get_team_info(
     hackathon_id: int,
     team_id: int,
     _=Depends(PermittedAction(Permissions.GetAllTeams)),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Возвращает полную информацию о хакатоновской команде с заданным ID.
     """
-    return await controller.get_total(team_id)
+    return await service.get_total(team_id)
 
 
 @router.delete(
@@ -67,14 +63,12 @@ async def delete_team(
     hackathon_id: int,
     team_id: int,
     _=Depends(PermittedAction(Permissions.DeleteHackathonTeam)),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Удаляет команду с заданным ID.
     """
-    return await controller.delete_team(team_id)
+    return await service.delete_team(team_id)
 
 
 @router.put(
@@ -87,15 +81,13 @@ async def set_role_desc(
     mate_user_id: int,
     dto: MateRoleDescDto,
     _=Depends(PermittedAction(Permissions.UpdateHackathonTeam)),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Устанавливает пользователю описание роли (например: Backend/Frontend; Python, Lua).
     Пользователь должен быть в команде.
     """
-    return await controller.set_mate_role_desc(
+    return await service.set_mate_role_desc(
         hackathon_id, mate_user_id, dto.role_desc
     )
 
@@ -110,14 +102,12 @@ async def set_mate_is_captain(
     mate_user_id: int,
     dto: AdminMateCaptainRightsDto,
     _=Depends(PermittedAction(Permissions.UpdateHackathonTeam)),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Устанавливает права капитана пользователю.
     """
-    return await controller.set_mate_is_captain(
+    return await service.set_mate_is_captain(
         hackathon_id, mate_user_id, dto.is_captain
     )
 
@@ -131,15 +121,13 @@ async def leave_team(
     hackathon_id: int,
     mate_user_id: int,
     _=Depends(PermittedAction(Permissions.UpdateHackathonTeam)),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Удаляет пользователя из команды.
     Если в команде больше не останется участников, то она будет удалена.
     """
-    return await controller.remove_mate(hackathon_id, mate_user_id)
+    return await service.remove_mate(hackathon_id, mate_user_id)
 
 
 @router.post(
@@ -152,15 +140,15 @@ async def add_mate(
     mate_user_id: int,
     dto: AdminAddMateDto,
     _=Depends(PermittedAction(Permissions.UpdateHackathonTeam)),
-    brand_team_controller: ITeamController = Depends(get_team_controller),
-    hack_team_controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
+    brand_team_service: ITeamService = Depends(get_team_service),
+    hack_team_service: IHackathonTeamsService = Depends(
+        get_hackathon_teams_service
     ),
 ):
     """
     Добавляет участника хакатоновской команды. Права капитанства наследуются автоматически.
     """
-    brand_team = await brand_team_controller.get_by_mate(mate_user_id)
-    return await hack_team_controller.add_mate(
+    brand_team = await brand_team_service.get_by_mate(mate_user_id)
+    return await hack_team_service.add_mate(
         brand_team.id, dto.team_id, mate_user_id
     )

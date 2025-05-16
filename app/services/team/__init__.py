@@ -1,32 +1,32 @@
-from app.controllers.mate.exceptions import AlreadyTeamMemberException
-from app.controllers.user.exceptions import UserDoesNotExistException
-from app.controllers.team.dto import TeamDto, TeamWithMatesDto
+from app.services.mate.exceptions import AlreadyTeamMemberException
+from app.services.user.exceptions import UserDoesNotExistException
+from app.services.team.dto import TeamDto, TeamWithMatesDto
 from tortoise.exceptions import IntegrityError
 from app.models.team import TeamModel
 from functools import lru_cache
 from fastapi import Depends
 from typing import Protocol
 
-from app.controllers.team.exceptions import (
+from app.services.team.exceptions import (
     TeamNameAlreadyUsedException,
     TeamDoesNotExistException,
     UserIsNotOwnerOfTeamException,
     UserNotInTeamException,
 )
-from app.controllers.user import (
-    IUserController,
-    get_user_controller,
+from app.services.user import (
+    IUserService,
+    get_user_service,
 )
 
-from app.controllers.mate import (
-    IMateController,
-    get_mate_controller,
+from app.services.mate import (
+    IMateService,
+    get_mate_service,
 )
 
 
-class ITeamController(Protocol):
-    user_controller: IUserController
-    mate_controller: IMateController
+class ITeamService(Protocol):
+    user_service: IUserService
+    mate_service: IMateService
 
     async def exists(self, team_id: int) -> bool: ...
     async def create(self, name: str, owner_id: int) -> TeamDto: ...
@@ -38,12 +38,10 @@ class ITeamController(Protocol):
     async def get_all(self) -> list[TeamDto]: ...
 
 
-class TeamController(ITeamController):
-    def __init__(
-        self, user_controller: IUserController, mate_controller: IMateController
-    ):
-        self.user_controller = user_controller
-        self.mate_controller = mate_controller
+class TeamService(ITeamService):
+    def __init__(self, user_service: IUserService, mate_service: IMateService):
+        self.user_service = user_service
+        self.mate_service = mate_service
 
     async def _get_team_by_id(self, team_id: int) -> TeamModel:
         team = await TeamModel.get_or_none(id=team_id)
@@ -57,22 +55,22 @@ class TeamController(ITeamController):
         return await TeamModel.exists(id=team_id)
 
     async def create(self, name: str, owner_id: int) -> TeamDto:
-        if not await self.user_controller.get_user_exists(owner_id):
+        if not await self.user_service.get_user_exists(owner_id):
             raise UserDoesNotExistException()
 
-        if await self.mate_controller.get_mate(owner_id) is not None:
+        if await self.mate_service.get_mate(owner_id) is not None:
             raise AlreadyTeamMemberException()
 
         try:
             team = await TeamModel.create(name=name, owner_id=owner_id)
-            await self.mate_controller.add(team.id, owner_id, is_captain=True)
+            await self.mate_service.add(team.id, owner_id, is_captain=True)
             return TeamDto.from_tortoise(team)
         except IntegrityError as e:
             raise TeamNameAlreadyUsedException from e
 
     async def get_info(self, team_id: int) -> TeamWithMatesDto:
         team = await self._get_team_by_id(team_id)
-        mates = await self.mate_controller.get_mates(team_id)
+        mates = await self.mate_service.get_mates(team_id)
 
         return TeamWithMatesDto(id=team.id, name=team.name, mates=mates)
 
@@ -91,7 +89,7 @@ class TeamController(ITeamController):
         await team.delete()
 
     async def get_by_mate(self, user_id: int) -> TeamWithMatesDto:
-        mate = await self.mate_controller.get_mate(user_id)
+        mate = await self.mate_service.get_mate(user_id)
 
         if mate is None:
             raise UserNotInTeamException()
@@ -99,7 +97,7 @@ class TeamController(ITeamController):
         return await self.get_info(mate.team_id)
 
     async def get_by_captain(self, captain_id: int) -> TeamDto:
-        mate = await self.mate_controller.get_mate(captain_id)
+        mate = await self.mate_service.get_mate(captain_id)
 
         if mate is None:
             raise UserNotInTeamException()
@@ -116,8 +114,8 @@ class TeamController(ITeamController):
 
 
 @lru_cache
-def get_team_controller(
-    user_controller: IUserController = Depends(get_user_controller),
-    mate_controller: IMateController = Depends(get_mate_controller),
-) -> TeamController:
-    return TeamController(user_controller, mate_controller)
+def get_team_service(
+    user_service: IUserService = Depends(get_user_service),
+    mate_service: IMateService = Depends(get_mate_service),
+) -> TeamService:
+    return TeamService(user_service, mate_service)

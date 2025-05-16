@@ -1,5 +1,5 @@
 from app.models.hackathon_team import HackathonTeamSubmissionModel
-from app.controllers.s3 import IS3Controller, get_s3_controller
+from app.services.s3 import IS3Service, get_s3_service
 from functools import lru_cache
 from typing import Protocol
 from fastapi import Depends
@@ -14,15 +14,15 @@ from .exceptions import (
     HackathonFileTypeRestrictedException,
 )
 
-from app.controllers.hackathon import (
-    IHackathonController,
-    get_hackathon_controller,
+from app.services.hackathon import (
+    IHackathonService,
+    get_hackathon_service,
 )
 
 
-class IHackathonTeamSubmissionsController(Protocol):
-    hackathon_controller: IHackathonController
-    s3_controller: IS3Controller
+class IHackathonTeamSubmissionsService(Protocol):
+    hackathon_service: IHackathonService
+    s3_service: IS3Service
 
     async def get_submission(
         self, hackathon_id: int, team_id: int
@@ -38,14 +38,14 @@ class IHackathonTeamSubmissionsController(Protocol):
     ) -> str: ...
 
 
-class HackathonTeamSubmissionsController(IHackathonTeamSubmissionsController):
+class HackathonTeamSubmissionsService(IHackathonTeamSubmissionsService):
     def __init__(
         self,
-        hackathon_controller: IHackathonController,
-        s3_controller: IS3Controller,
+        hackathon_service: IHackathonService,
+        s3_service: IS3Service,
     ):
-        self.hackathon_controller = hackathon_controller
-        self.s3_controller = s3_controller
+        self.hackathon_service = hackathon_service
+        self.s3_service = s3_service
 
     async def get_submission(
         self, hackathon_id: int, team_id: int
@@ -62,7 +62,7 @@ class HackathonTeamSubmissionsController(IHackathonTeamSubmissionsController):
     async def upload_team_submission(
         self, hackathon_id: int, filename: str, team_id: int, file: io.BytesIO
     ) -> HackathonTeamSubmissionDto:
-        if not await self.hackathon_controller.can_upload_submissions(
+        if not await self.hackathon_service.can_upload_submissions(
             hackathon_id
         ):
             raise HackathonTeamCantUploadSubmissionsException()
@@ -74,7 +74,7 @@ class HackathonTeamSubmissionsController(IHackathonTeamSubmissionsController):
         content_type = utils.guess_content_type(filename)
 
         file.seek(0)
-        self.s3_controller.upload_file(file, "hackathons", s3_key, content_type)
+        self.s3_service.upload_file(file, "hackathons", s3_key, content_type)
 
         submission, _ = await HackathonTeamSubmissionModel.update_or_create(
             defaults={
@@ -101,12 +101,8 @@ class HackathonTeamSubmissionsController(IHackathonTeamSubmissionsController):
 
 
 @lru_cache
-def get_hackathon_team_submissions_controller(
-    hackathon_controller: IHackathonController = Depends(
-        get_hackathon_controller
-    ),
-    s3_controller: IS3Controller = Depends(get_s3_controller),
-) -> HackathonTeamSubmissionsController:
-    return HackathonTeamSubmissionsController(
-        hackathon_controller, s3_controller
-    )
+def get_hackathon_team_submissions_service(
+    hackathon_service: IHackathonService = Depends(get_hackathon_service),
+    s3_service: IS3Service = Depends(get_s3_service),
+) -> HackathonTeamSubmissionsService:
+    return HackathonTeamSubmissionsService(hackathon_service, s3_service)

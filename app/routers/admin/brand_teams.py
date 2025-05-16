@@ -1,9 +1,9 @@
-from app.controllers.mate import IMateController, get_mate_controller
-from app.controllers.team import ITeamController, get_team_controller
-from app.controllers.team.dto import TeamDto, TeamWithMatesDto
+from app.services.mate import IMateService, get_mate_service
+from app.services.team import ITeamService, get_team_service
+from app.services.team.dto import TeamDto, TeamWithMatesDto
 from app.routers.mate.dto import MateCaptainRightsDto
-from app.controllers.mate.dto import TeamMateDto
-from app.controllers.auth import PermittedAction
+from app.services.mate.dto import TeamMateDto
+from app.services.auth import PermittedAction
 from app.routers.admin.dto import ChangeNameDto
 from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
@@ -17,26 +17,24 @@ router = APIRouter(
 @router.get("/", response_model=list[TeamDto], summary="Список всех команд")
 async def get_all_teams(
     _=Depends(PermittedAction(Permissions.GetAllTeams)),
-    team_controller: ITeamController = Depends(get_team_controller),
+    team_service: ITeamService = Depends(get_team_service),
 ):
     """
     Возвращает список всех команд.
     """
-    return await team_controller.get_all()
+    return await team_service.get_all()
 
 
 @router.post("/name", response_model=TeamDto, summary="Изменение названия")
 async def change_name(
     name_dto: ChangeNameDto,
     _=Depends(PermittedAction(Permissions.UpdateBrandTeam)),
-    team_controller: ITeamController = Depends(get_team_controller),
+    team_service: ITeamService = Depends(get_team_service),
 ):
     """
     Изменяет название команды. Название должно быть уникальным.
     """
-    return await team_controller.update_name(
-        name_dto.team_id, name_dto.new_name
-    )
+    return await team_service.update_name(name_dto.team_id, name_dto.new_name)
 
 
 @router.get(
@@ -47,24 +45,24 @@ async def change_name(
 async def get_full_team_info(
     team_id: int,
     _=Depends(PermittedAction(Permissions.GetAllTeams)),
-    team_controller: ITeamController = Depends(get_team_controller),
+    team_service: ITeamService = Depends(get_team_service),
 ):
     """
     Возвращает полную информацию о команде.
     """
-    return await team_controller.get_info(team_id)
+    return await team_service.get_info(team_id)
 
 
 @router.delete("/{team_id}", summary="Удаление команды")
 async def delete_team(
     team_id: int,
     _=Depends(PermittedAction(Permissions.DeleteBrandTeam)),
-    team_controller: ITeamController = Depends(get_team_controller),
+    team_service: ITeamService = Depends(get_team_service),
 ):
     """
     Удаляет команду из списка команд.
     """
-    return await team_controller.delete(team_id)
+    return await team_service.delete(team_id)
 
 
 @router.post(
@@ -75,9 +73,9 @@ async def delete_team(
 async def change_owner(
     dto: MateCaptainRightsDto,
     _=Depends(PermittedAction(Permissions.UpdateBrandTeam)),
-    mate_controller: IMateController = Depends(get_mate_controller),
+    mate_service: IMateService = Depends(get_mate_service),
 ):
     """
     Устанавливает права капитана команды. Предыдущий владелец станет участником.
     """
-    return await mate_controller.set_is_captain(dto.user_id, dto.is_captain)
+    return await mate_service.set_is_captain(dto.user_id, dto.is_captain)

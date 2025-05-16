@@ -1,8 +1,8 @@
-from app.controllers.team import ITeamController, get_team_controller
+from app.services.team import ITeamService, get_team_service
 from app.routers.dependencies import TeamOwnerDto, get_team_owner
-from app.controllers.team.dto import TeamDto, TeamWithMatesDto
-from app.controllers.auth.dto import AccessJWTPayloadDto
-from app.controllers.auth import PermittedAction
+from app.services.team.dto import TeamDto, TeamWithMatesDto
+from app.services.auth.dto import AccessJWTPayloadDto
+from app.services.auth import PermittedAction
 from app.acl.permissions import Permissions
 from app.routers.root.dto import TeamNameDto
 from fastapi import APIRouter, Depends
@@ -17,12 +17,12 @@ async def create_team(
     user_dto: AccessJWTPayloadDto = Depends(
         PermittedAction(Permissions.CreateTeam)
     ),
-    controller: ITeamController = Depends(get_team_controller),
+    service: ITeamService = Depends(get_team_service),
 ):
     """
     Регистрирует новую команду.
     """
-    return await controller.create(create_dto.name, user_dto.user_id)
+    return await service.create(create_dto.name, user_dto.user_id)
 
 
 @router.get(
@@ -33,12 +33,12 @@ async def create_team(
 async def get_info(
     team_id: int,
     _=Depends(PermittedAction(Permissions.GetTeamInfo)),
-    controller: ITeamController = Depends(get_team_controller),
+    service: ITeamService = Depends(get_team_service),
 ):
     """
     Возвращает информацию о команде. Помимо информации, сюда входит список всех участников.
     """
-    return await controller.get_info(team_id)
+    return await service.get_info(team_id)
 
 
 @router.get(
@@ -50,12 +50,12 @@ async def get_info_by_user(
     user_dto: AccessJWTPayloadDto = Depends(
         PermittedAction(Permissions.GetTeamInfo)
     ),
-    controller: ITeamController = Depends(get_team_controller),
+    service: ITeamService = Depends(get_team_service),
 ):
     """
     Возвращает информацию о команде залогиненного пользователя. Помимо информации, сюда входит список всех участников.
     """
-    return await controller.get_by_mate(user_dto.user_id)
+    return await service.get_by_mate(user_dto.user_id)
 
 
 @router.post(
@@ -64,10 +64,10 @@ async def get_info_by_user(
 async def update_name(
     update_dto: TeamNameDto,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
-    controller: ITeamController = Depends(get_team_controller),
+    service: ITeamService = Depends(get_team_service),
 ):
     """
     Изменяет название команды у текущего залогиненного пользователя.
     Работает только в случае, если пользователь - владелец команды.
     """
-    return await controller.update_name(owner_dto.team_dto.id, update_dto.name)
+    return await service.update_name(owner_dto.team_dto.id, update_dto.name)

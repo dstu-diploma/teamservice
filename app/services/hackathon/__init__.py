@@ -7,13 +7,13 @@ from typing import Protocol
 import httpx
 
 
-class IHackathonController(Protocol):
+class IHackathonService(Protocol):
     async def get_hackathon_data(self, hackathon_id: int) -> HackathonDto: ...
     async def can_edit_team_registry(self, hackathon_id: int) -> bool: ...
     async def can_upload_submissions(self, hackathon_id: int) -> bool: ...
 
 
-class HackathonController(IHackathonController):
+class HackathonService(IHackathonService):
     def __init__(
         self,
         client: httpx.AsyncClient,
@@ -60,7 +60,7 @@ async def get_http_client():
 
 
 @lru_cache
-def get_hackathon_controller(
+def get_hackathon_service(
     client: httpx.AsyncClient = Depends(get_http_client),
-) -> HackathonController:
-    return HackathonController(client=client)
+) -> HackathonService:
+    return HackathonService(client=client)

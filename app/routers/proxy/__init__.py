@@ -1,13 +1,13 @@
-from app.controllers.s3 import IS3Controller, get_s3_controller
+from app.services.s3 import IS3Service, get_s3_service
 from fastapi.responses import StreamingResponse
 from fastapi import APIRouter, Depends
 from urllib.parse import quote
 
-from app.controllers.hackathon_team_submissions import (
-    IHackathonTeamSubmissionsController,
-    get_hackathon_team_submissions_controller,
+from app.services.hackathon_team_submissions import (
+    IHackathonTeamSubmissionsService,
+    get_hackathon_team_submissions_service,
 )
-from app.controllers.hackathon_team_submissions.exceptions import (
+from app.services.hackathon_team_submissions.exceptions import (
     HackathonTeamCantUploadSubmissionsException,
 )
 
@@ -19,19 +19,17 @@ router = APIRouter(prefix="/download", include_in_schema=False)
 async def download_team_submission(
     hackathon_id: int,
     team_id: int,
-    submission_controller: IHackathonTeamSubmissionsController = Depends(
-        get_hackathon_team_submissions_controller
+    submission_service: IHackathonTeamSubmissionsService = Depends(
+        get_hackathon_team_submissions_service
     ),
-    s3_controller: IS3Controller = Depends(get_s3_controller),
+    s3_service: IS3Service = Depends(get_s3_service),
 ):
-    submission = await submission_controller.get_submission(
-        hackathon_id, team_id
-    )
+    submission = await submission_service.get_submission(hackathon_id, team_id)
 
     if submission is None:
         raise HackathonTeamCantUploadSubmissionsException()
 
-    s3_obj = s3_controller.get_object("hackathons", submission.s3_key)
+    s3_obj = s3_service.get_object("hackathons", submission.s3_key)
 
     return StreamingResponse(
         s3_obj["Body"],

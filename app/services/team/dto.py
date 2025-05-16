@@ -1,4 +1,4 @@
-from app.controllers.mate.dto import TeamMateDto
+from app.services.mate.dto import TeamMateDto
 from app.models.team import TeamModel
 from pydantic import BaseModel
 

@@ -1,11 +1,11 @@
-from app.controllers.mate import IMateController, get_mate_controller
-from app.controllers.team import ITeamController, get_team_controller
+from app.services.mate import IMateService, get_mate_service
+from app.services.team import ITeamService, get_team_service
 from app.routers.mate.dto import MateCaptainRightsDto, MateRoleDescDto
-from app.controllers.mate.exceptions import NotAMemberException
+from app.services.mate.exceptions import NotAMemberException
 from app.routers.dependencies import TeamOwnerDto, get_team_owner
-from app.controllers.auth.dto import AccessJWTPayloadDto
-from app.controllers.mate.dto import TeamMateDto
-from app.controllers.auth import PermittedAction
+from app.services.auth.dto import AccessJWTPayloadDto
+from app.services.mate.dto import TeamMateDto
+from app.services.auth import PermittedAction
 from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
 
@@ -25,25 +25,25 @@ async def get_team_mates(
     user_dto: AccessJWTPayloadDto = Depends(
         PermittedAction(Permissions.GetTeamInfo)
     ),
-    mate_controller: IMateController = Depends(get_mate_controller),
+    mate_service: IMateService = Depends(get_mate_service),
 ):
     """
     Возвращает список участников группы.
     """
-    mate_dto = await mate_controller.get_mate(user_dto.user_id)
+    mate_dto = await mate_service.get_mate(user_dto.user_id)
     if mate_dto:
-        return await mate_controller.get_mates(mate_dto.team_id)
+        return await mate_service.get_mates(mate_dto.team_id)
 
     raise NotAMemberException()
 
 
 async def _delete_mate(
     user_id: int,
-    mate_controller: IMateController,
-    team_controller: ITeamController,
+    mate_service: IMateService,
+    team_service: ITeamService,
     team_id: int | None = None,
 ) -> TeamMateDto:
-    mate = await mate_controller.get_mate(user_id)
+    mate = await mate_service.get_mate(user_id)
 
     if mate is None:
         raise NotAMemberException()
@@ -54,9 +54,9 @@ async def _delete_mate(
     if mate.team_id != team_id:
         raise NotYourMateException()
 
-    await mate_controller.remove(user_id)
-    if await mate_controller.get_mate_count(team_id) == 0:
-        await team_controller.delete(team_id)
+    await mate_service.remove(user_id)
+    if await mate_service.get_mate_count(team_id) == 0:
+        await team_service.delete(team_id)
 
     return mate
 
@@ -70,16 +70,14 @@ async def leave_team(
     user_dto: AccessJWTPayloadDto = Depends(
         PermittedAction(Permissions.UpdateSelf)
     ),
-    mate_controller: IMateController = Depends(get_mate_controller),
-    team_controller: ITeamController = Depends(get_team_controller),
+    mate_service: IMateService = Depends(get_mate_service),
+    team_service: ITeamService = Depends(get_team_service),
 ):
     """
     Удаляет текущего пользователя из команды-бренда.
     Если в команде больше не останется участников, то она будет удалена.
     """
-    return await _delete_mate(
-        user_dto.user_id, mate_controller, team_controller
-    )
+    return await _delete_mate(user_dto.user_id, mate_service, team_service)
 
 
 @router.delete(
@@ -90,15 +88,15 @@ async def leave_team(
 async def delete_mate(
     user_id: int,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
-    mate_controller: IMateController = Depends(get_mate_controller),
-    team_controller: ITeamController = Depends(get_team_controller),
+    mate_service: IMateService = Depends(get_mate_service),
+    team_service: ITeamService = Depends(get_team_service),
 ):
     """
     Удаляет участника команды-бренда. Текущий пользователь должен быть капитаном.
     Если в команде больше не останется участников, то она будет удалена.
     """
     return await _delete_mate(
-        user_id, mate_controller, team_controller, owner_dto.team_dto.id
+        user_id, mate_service, team_service, owner_dto.team_dto.id
     )
 
 
@@ -112,17 +110,15 @@ async def set_role_desc(
     user_dto: AccessJWTPayloadDto = Depends(
         PermittedAction(Permissions.UpdateSelf)
     ),
-    mate_controller: IMateController = Depends(get_mate_controller),
+    mate_service: IMateService = Depends(get_mate_service),
 ):
     """
     Устанавливает текущему пользователю описание роли (например: Backend/Frontend; Python, Lua).
     Текущий пользователь должен быть в команде.
     """
-    mate_dto = await mate_controller.get_mate(user_dto.user_id)
+    mate_dto = await mate_service.get_mate(user_dto.user_id)
     if mate_dto:
-        return await mate_controller.set_role_desc(
-            user_dto.user_id, dto.role_desc
-        )
+        return await mate_service.set_role_desc(user_dto.user_id, dto.role_desc)
 
     raise NotAMemberException()
 
@@ -135,7 +131,7 @@ async def set_role_desc(
 async def set_captain_rights(
     dto: MateCaptainRightsDto,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
-    mate_controller: IMateController = Depends(get_mate_controller),
+    mate_service: IMateService = Depends(get_mate_service),
 ):
     """
     Устанавливает права капитана пользователю.
@@ -144,8 +140,8 @@ async def set_captain_rights(
     """
     if (
         not dto.is_captain
-        and len(await mate_controller.get_captains(owner_dto.team_dto.id)) <= 1
+        and len(await mate_service.get_captains(owner_dto.team_dto.id)) <= 1
     ):
         raise NoMoreCaptainsException()
 
-    return await mate_controller.set_is_captain(dto.user_id, dto.is_captain)
+    return await mate_service.set_is_captain(dto.user_id, dto.is_captain)

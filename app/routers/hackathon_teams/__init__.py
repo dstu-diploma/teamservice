@@ -1,28 +1,28 @@
 from app.routers.mate.dto import MateCaptainRightsDto, MateRoleDescDto
 from app.routers.dependencies import TeamOwnerDto, get_team_owner
 from app.routers.mate.exceptions import NoMoreCaptainsException
-from app.controllers.auth.dto import AccessJWTPayloadDto
+from app.services.auth.dto import AccessJWTPayloadDto
 from fastapi import APIRouter, Depends, UploadFile
-from app.controllers.auth import PermittedAction
+from app.services.auth import PermittedAction
 from app.acl.permissions import Permissions
 from .dto import CreateHackathonTeamDto
 from urllib.parse import quote
 from uuid import uuid4
 import io
 
-from app.controllers.hackathon_team_submissions import (
-    get_hackathon_team_submissions_controller,
-    IHackathonTeamSubmissionsController,
+from app.services.hackathon_team_submissions import (
+    get_hackathon_team_submissions_service,
+    IHackathonTeamSubmissionsService,
 )
-from app.controllers.hackathon_team_submissions.dto import (
+from app.services.hackathon_team_submissions.dto import (
     HackathonTeamSubmissionDto,
 )
 
-from app.controllers.hackathon_teams import (
-    get_hackathon_teams_controller,
-    IHackathonTeamsController,
+from app.services.hackathon_teams import (
+    get_hackathon_teams_service,
+    IHackathonTeamsService,
 )
-from app.controllers.hackathon_teams.dto import (
+from app.services.hackathon_teams.dto import (
     HackathonTeamWithMatesDto,
     HackathonTeamMateDto,
 )
@@ -39,9 +39,7 @@ router = APIRouter(tags=["Хакатоновские команды"], prefix="/
 async def create_hackathon_team(
     create_dto: CreateHackathonTeamDto,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Регистрирует новую команду на хакатон. Данные для создания команды берутся из текущей команды пользователя.
@@ -53,7 +51,7 @@ async def create_hackathon_team(
 
     Если в хакатоне больше нет мест/в формируемой команде получается слишком много пользователей (решается конкретным хакатоном), вернет 400.
     """
-    return await controller.create(
+    return await service.create(
         owner_dto.team_dto.id, create_dto.hackathon_id, create_dto.mate_user_ids
     )
 
@@ -68,15 +66,13 @@ async def get_my_hack_team_info(
     user_dto: AccessJWTPayloadDto = Depends(
         PermittedAction(Permissions.CreateTeam)
     ),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Возвращает полную информацию о хакатоновской команде текущего пользователя (если он в ней состоит).
     """
-    mate = await controller.get_mate(user_dto.user_id, hackathon_id)
-    return await controller.get_total(mate.team_id)
+    mate = await service.get_mate(user_dto.user_id, hackathon_id)
+    return await service.get_total(mate.team_id)
 
 
 @router.put(
@@ -90,15 +86,13 @@ async def set_role_desc(
     user_dto: AccessJWTPayloadDto = Depends(
         PermittedAction(Permissions.UpdateSelf)
     ),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Устанавливает текущему пользователю описание роли (наприме: Backend/Frontend; Python, Lua).
     Текущий пользователь должен быть в команде.
     """
-    return await controller.set_mate_role_desc(
+    return await service.set_mate_role_desc(
         hackathon_id, user_dto.user_id, dto.role_desc
     )
 
@@ -112,9 +106,7 @@ async def set_mate_is_captain(
     hackathon_id: int,
     dto: MateCaptainRightsDto,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Устанавливает права капитана пользователю.
@@ -123,11 +115,11 @@ async def set_mate_is_captain(
     """
     if (
         not dto.is_captain
-        and len(await controller.get_captains(owner_dto.team_dto.id)) <= 1
+        and len(await service.get_captains(owner_dto.team_dto.id)) <= 1
     ):
         raise NoMoreCaptainsException()
 
-    return await controller.set_mate_is_captain(
+    return await service.set_mate_is_captain(
         hackathon_id, dto.user_id, dto.is_captain
     )
 
@@ -142,16 +134,14 @@ async def leave_team(
     user_dto: AccessJWTPayloadDto = Depends(
         PermittedAction(Permissions.UpdateSelf)
     ),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Удаляет текущего пользователя из команды.
     Если в команде больше не останется участников, то она будет удалена.
     """
-    current_mate = await controller.get_mate(user_dto.user_id, hackathon_id)
-    return await controller.remove_mate(current_mate.team_id, user_dto.user_id)
+    current_mate = await service.get_mate(user_dto.user_id, hackathon_id)
+    return await service.remove_mate(current_mate.team_id, user_dto.user_id)
 
 
 @router.delete(
@@ -163,15 +153,13 @@ async def remove_mate(
     hackathon_id: int,
     user_id: int,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Удаляет участника хакатоновской команды. Текущий пользователь должен быть капитаном команды.
     Если в команде больше не останется участников, то она будет удалена.
     """
-    return await controller.remove_mate(hackathon_id, user_id)
+    return await service.remove_mate(hackathon_id, user_id)
 
 
 @router.post(
@@ -183,18 +171,16 @@ async def add_mate(
     hackathon_id: int,
     user_id: int,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
-    controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     """
     Добавляет участника хакатоновской команды. Права капитанства наследуются автоматически.
     Текущий пользователь должен быть капитаном.
     """
-    current_mate = await controller.get_mate(
+    current_mate = await service.get_mate(
         owner_dto.user_dto.user_id, hackathon_id
     )
-    return await controller.add_mate(
+    return await service.add_mate(
         owner_dto.team_dto.id, current_mate.team_id, user_id
     )
 
@@ -208,14 +194,12 @@ async def upload_submission(
     hackathon_id: int,
     file: UploadFile,
     owner_dto: TeamOwnerDto = Depends(get_team_owner),
-    team_controller: IHackathonTeamsController = Depends(
-        get_hackathon_teams_controller
-    ),
-    submission_controller: IHackathonTeamSubmissionsController = Depends(
-        get_hackathon_team_submissions_controller
+    team_service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
+    submission_service: IHackathonTeamSubmissionsService = Depends(
+        get_hackathon_team_submissions_service
     ),
 ):
-    current_mate = await team_controller.get_mate(
+    current_mate = await team_service.get_mate(
         owner_dto.user_dto.user_id, hackathon_id
     )
 
@@ -224,7 +208,7 @@ async def upload_submission(
         or f"{current_mate.team_id}_{current_mate.user_id}_{uuid4()}"
     )
 
-    return await submission_controller.upload_team_submission(
+    return await submission_service.upload_team_submission(
         hackathon_id,
         filename,
         current_mate.team_id,
