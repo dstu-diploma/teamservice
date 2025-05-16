@@ -1,22 +1,11 @@
 from tortoise.contrib.fastapi import register_tortoise
+from app.config import Settings
 from tortoise import Tortoise
 from fastapi import FastAPI
-from os import environ
-
-
-def get_tortoise_url() -> str:
-    url: str | None = environ.get("DATABASE_URL")
-
-    if url is None:
-        raise KeyError(
-            "Необходимо указать DATABASE_URL в переменных окружения!"
-        )
-
-    return url
 
 
 TORTOISE_ORM = {
-    "connections": {"default": get_tortoise_url()},
+    "connections": {"default": Settings.DATABASE_URL},
     "apps": {
         "models": {
             "models": ["app.models", "aerich.models"],
