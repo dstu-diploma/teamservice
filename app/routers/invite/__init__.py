@@ -1,5 +1,5 @@
 from app.controllers.invite import InviteController, get_invite_controller
-from app.views.dependencies import TeamOwnerDto, get_team_owner
+from app.routers.dependencies import TeamOwnerDto, get_team_owner
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from app.controllers.invite.dto import TeamInviteDto
 from app.controllers.auth import PermittedAction

@@ -1,10 +1,10 @@
 from app.controllers.mate import IMateController, get_mate_controller
 from app.controllers.team import ITeamController, get_team_controller
 from app.controllers.team.dto import TeamDto, TeamWithMatesDto
-from app.views.mate.dto import MateCaptainRightsDto
+from app.routers.mate.dto import MateCaptainRightsDto
 from app.controllers.mate.dto import TeamMateDto
 from app.controllers.auth import PermittedAction
-from app.views.admin.dto import ChangeNameDto
+from app.routers.admin.dto import ChangeNameDto
 from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
 

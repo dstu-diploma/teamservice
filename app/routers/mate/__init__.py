@@ -1,15 +1,15 @@
 from app.controllers.mate import IMateController, get_mate_controller
 from app.controllers.team import ITeamController, get_team_controller
-from app.views.mate.dto import MateCaptainRightsDto, MateRoleDescDto
+from app.routers.mate.dto import MateCaptainRightsDto, MateRoleDescDto
 from app.controllers.mate.exceptions import NotAMemberException
-from app.views.dependencies import TeamOwnerDto, get_team_owner
+from app.routers.dependencies import TeamOwnerDto, get_team_owner
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from app.controllers.mate.dto import TeamMateDto
 from app.controllers.auth import PermittedAction
 from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
 
-from app.views.mate.exceptions import (
+from app.routers.mate.exceptions import (
     NoMoreCaptainsException,
     NotYourMateException,
 )

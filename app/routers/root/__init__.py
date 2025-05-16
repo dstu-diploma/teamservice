@@ -1,10 +1,10 @@
 from app.controllers.team import ITeamController, get_team_controller
-from app.views.dependencies import TeamOwnerDto, get_team_owner
+from app.routers.dependencies import TeamOwnerDto, get_team_owner
 from app.controllers.team.dto import TeamDto, TeamWithMatesDto
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from app.controllers.auth import PermittedAction
 from app.acl.permissions import Permissions
-from app.views.root.dto import TeamNameDto
+from app.routers.root.dto import TeamNameDto
 from fastapi import APIRouter, Depends
 
 

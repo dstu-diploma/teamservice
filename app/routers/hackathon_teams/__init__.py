@@ -1,6 +1,6 @@
-from app.views.mate.dto import MateCaptainRightsDto, MateRoleDescDto
-from app.views.dependencies import TeamOwnerDto, get_team_owner
-from app.views.mate.exceptions import NoMoreCaptainsException
+from app.routers.mate.dto import MateCaptainRightsDto, MateRoleDescDto
+from app.routers.dependencies import TeamOwnerDto, get_team_owner
+from app.routers.mate.exceptions import NoMoreCaptainsException
 from app.controllers.auth.dto import AccessJWTPayloadDto
 from fastapi import APIRouter, Depends, UploadFile
 from app.controllers.auth import PermittedAction

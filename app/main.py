@@ -1,5 +1,5 @@
 from fastapi.middleware.cors import CORSMiddleware
-from app.views import main_router
+from app.routers import main_router
 from fastapi import FastAPI
 from app.db import init_db
 from os import environ

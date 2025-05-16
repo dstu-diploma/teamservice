@@ -1,7 +1,7 @@
 from app.controllers.team import ITeamController, get_team_controller
 from .dto import AdminAddMateDto, AdminMateCaptainRightsDto
 from app.controllers.auth import PermittedAction
-from app.views.mate.dto import MateRoleDescDto
+from app.routers.mate.dto import MateRoleDescDto
 from app.acl.permissions import Permissions
 from fastapi import APIRouter, Depends
 
