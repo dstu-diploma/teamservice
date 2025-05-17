@@ -1,9 +1,10 @@
-from fastapi import HTTPException
-import httpx
-from app.config import Settings
+from app.ports.hackathonservice.exceptions import HackathonServiceError
 from app.ports.hackathonservice import IHackathonServicePort
 from app.ports.hackathonservice.dto import HackathonDto
-from app.ports.hackathonservice.exceptions import HackathonServiceError
+from fastapi import HTTPException
+from app.config import Settings
+import urllib.parse
+import httpx
 
 
 class HackathonServiceAdapter(IHackathonServicePort):
@@ -36,13 +37,17 @@ class HackathonServiceAdapter(IHackathonServicePort):
 
     async def can_edit_team_registry(self, hackathon_id: int) -> bool:
         data = await self._do_get(
-            f"{self.base_url}/{hackathon_id}/can-edit-team-registry"
+            urllib.parse.urljoin(
+                self.base_url, f"{hackathon_id}/can-edit-team-registry"
+            )
         )
         return data["can_edit"]
 
     async def can_upload_submissions(self, hackathon_id: int) -> bool:
         data = await self._do_get(
-            f"{self.base_url}/{hackathon_id}/can-upload-submissions"
+            urllib.parse.urljoin(
+                self.base_url, f"{hackathon_id}/can-upload-submissions"
+            )
         )
         return data["can_upload"]
 
