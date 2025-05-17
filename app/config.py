@@ -21,6 +21,7 @@ class TeamServiceSettings(BaseSettings):
     JWT_SECRET: str = "dstu"
     ROOT_PATH: str = ""
     INTERNAL_API_KEY: str = "apikey"
+    PUBLIC_API_URL: str = "http://localhost/team"
 
 
 Settings = TeamServiceSettings()

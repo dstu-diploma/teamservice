@@ -100,7 +100,7 @@ class HackathonTeamsService(IHackathonTeamsService):
 
         if submission:
             return self.submission_service.generate_redirect_link(
-                Settings.ROOT_PATH,
+                Settings.PUBLIC_API_URL,
                 hackathon_id,
                 team_id,
             )
