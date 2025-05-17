@@ -9,3 +9,4 @@ class MinimalUserDto(BaseModel):
     patronymic: str
     register_date: datetime
     is_banned: bool
+    formatted_name: str

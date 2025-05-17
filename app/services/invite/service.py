@@ -49,7 +49,7 @@ class InviteService(IInviteService):
 
         invite = await TeamInvitesModel.create(team_id=team_id, user_id=user_id)
         dto = TeamInviteDto.from_tortoise(invite)
-        dto.user_name = self.user_service.format_name(user_info)
+        dto.user_name = user_info.formatted_name
         dto.team_name = team_info.name
 
         return dto

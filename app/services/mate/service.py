@@ -65,7 +65,7 @@ class MateService(IMateService):
         )
 
         dto = TeamMateDto.from_tortoise(mate)
-        dto.user_name = self.user_service.format_name(mate_info)
+        dto.user_name = mate_info.formatted_name
 
         return dto
 
@@ -75,7 +75,7 @@ class MateService(IMateService):
         await mate.delete()
 
         dto = TeamMateDto.from_tortoise(mate)
-        dto.user_name = self.user_service.format_name(mate_info)
+        dto.user_name = mate_info.formatted_name
 
         return dto
 
@@ -89,7 +89,7 @@ class MateService(IMateService):
         await mate.save()
 
         dto = TeamMateDto.from_tortoise(mate)
-        dto.user_name = self.user_service.format_name(mate_info)
+        dto.user_name = mate_info.formatted_name
 
         return dto
 
@@ -101,7 +101,7 @@ class MateService(IMateService):
         await mate.save()
 
         dto = TeamMateDto.from_tortoise(mate)
-        dto.user_name = self.user_service.format_name(mate_info)
+        dto.user_name = mate_info.formatted_name
 
         return dto
 

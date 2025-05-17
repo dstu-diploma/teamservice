@@ -97,7 +97,7 @@ class HackathonTeamsService(IHackathonTeamsService):
 
         user_info = await self.user_service.try_get_user_info(user_id)
         if user_info:
-            dto.user_name = self.user_service.format_name(user_info)
+            dto.user_name = user_info.formatted_name
 
         return dto
 
@@ -245,7 +245,7 @@ class HackathonTeamsService(IHackathonTeamsService):
         dto = HackathonTeamMateDto.from_tortoise(mate)
         user_info = await self.user_service.try_get_user_info(mate_user_id)
         if user_info:
-            dto.user_name = self.user_service.format_name(user_info)
+            dto.user_name = user_info.formatted_name
 
         return dto
 
@@ -265,7 +265,7 @@ class HackathonTeamsService(IHackathonTeamsService):
         dto = HackathonTeamMateDto.from_tortoise(mate)
         user_info = await self.user_service.try_get_user_info(mate_user_id)
         if user_info:
-            dto.user_name = self.user_service.format_name(user_info)
+            dto.user_name = user_info.formatted_name
 
         return dto
 
@@ -295,7 +295,7 @@ class HackathonTeamsService(IHackathonTeamsService):
         dto = HackathonTeamMateDto.from_tortoise(mate)
         user_info = await self.user_service.try_get_user_info(mate_user_id)
         if user_info:
-            dto.user_name = self.user_service.format_name(user_info)
+            dto.user_name = user_info.formatted_name
 
         return dto
 
