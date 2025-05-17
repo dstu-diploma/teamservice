@@ -17,7 +17,7 @@ async def get_team_by_id(
     _=Depends(get_token_from_header),
     service: ITeamService = Depends(get_team_service),
 ):
-    return await service.exists(id)
+    return await service.get_info(id)
 
 
 @router.get("/hackathon/{hackathon_id}/teams")
@@ -27,6 +27,15 @@ async def get_hackathon_teams(
     service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
 ):
     return await service.get_hackathon_teams(hackathon_id)
+
+
+@router.post("/hackathon/{hackathon_id}/teams-info-many/")
+async def get_hackathon_teams_info(
+    team_ids: list[int],
+    _=Depends(get_token_from_header),
+    service: IHackathonTeamsService = Depends(get_hackathon_teams_service),
+):
+    return await service.get_hackathon_teams_many(team_ids)
 
 
 # на самом деле hackathon_id тут не нужен, но нужно соблюдать нейминг

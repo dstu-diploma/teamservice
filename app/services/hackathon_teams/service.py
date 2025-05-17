@@ -366,3 +366,14 @@ class HackathonTeamsService(IHackathonTeamsService):
             )
             for team in teams
         ]
+
+    async def get_hackathon_teams_many(
+        self, hackathon_team_ids: list[int]
+    ) -> list[HackathonTeamDto]:
+        teams = await HackathonTeamModel.filter(id__in=hackathon_team_ids)
+        return [
+            HackathonTeamDto.from_tortoise(
+                team, await self._get_submission_url(team.hackathon_id, team.id)
+            )
+            for team in teams
+        ]

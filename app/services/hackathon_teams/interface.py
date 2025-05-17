@@ -56,3 +56,6 @@ class IHackathonTeamsService(Protocol):
     async def get_hackathon_teams(
         self, hackathon_id: int
     ) -> list[HackathonTeamDto]: ...
+    async def get_hackathon_teams_many(
+        self, hackathon_team_ids: list[int]
+    ) -> list[HackathonTeamDto]: ...
