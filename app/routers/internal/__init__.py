@@ -29,7 +29,7 @@ async def get_hackathon_teams(
     return await service.get_hackathon_teams(hackathon_id)
 
 
-@router.post("/hackathon/{hackathon_id}/teams-info-many/")
+@router.post("/hackathon/{hackathon_id}/teams-info-many")
 async def get_hackathon_teams_info(
     team_ids: list[int],
     _=Depends(get_token_from_header),

@@ -32,7 +32,9 @@ class HackathonServiceAdapter(IHackathonServicePort):
             raise HackathonServiceError()
 
     async def get_hackathon_data(self, hackathon_id: int) -> HackathonDto:
-        data = await self._do_get(f"{self.base_url}/{hackathon_id}")
+        data = await self._do_get(
+            urllib.parse.urljoin(self.base_url, str(hackathon_id))
+        )
         return HackathonDto(**data)
 
     async def can_edit_team_registry(self, hackathon_id: int) -> bool:

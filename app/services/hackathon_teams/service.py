@@ -150,9 +150,6 @@ class HackathonTeamsService(IHackathonTeamsService):
         return HackathonTeamWithMatesDto(
             **team.model_dump(),
             mates=mates,
-            submission_url=await self._get_submission_url(
-                team.hackathon_id, team.id
-            ),
         )
 
     async def _validate_hackathon_limits(
@@ -189,6 +186,10 @@ class HackathonTeamsService(IHackathonTeamsService):
             hackathon_id
         ):
             raise CantEditHackathonTeamsException()
+
+        hackathon_data = await self.hackathon_service.get_hackathon_data(
+            hackathon_id
+        )
 
         brand_team = await self.brand_team_service.get_info(brand_team_id)
 
@@ -231,6 +232,7 @@ class HackathonTeamsService(IHackathonTeamsService):
             return HackathonTeamWithMatesDto(
                 id=hackathon_team.id,
                 hackathon_id=hackathon_id,
+                hackathon_name=hackathon_data.name,
                 name=hackathon_team.name,
                 mates=await self.get_mates(hackathon_team.id),
             )
@@ -360,9 +362,16 @@ class HackathonTeamsService(IHackathonTeamsService):
         self, hackathon_id: int
     ) -> list[HackathonTeamDto]:
         teams = await HackathonTeamModel.filter(hackathon_id=hackathon_id)
+        hackathon_data = await self.hackathon_service.try_get_hackathon_data(
+            hackathon_id
+        )
+        hackathon_name = hackathon_data.name if hackathon_data else None
+
         return [
             HackathonTeamDto.from_tortoise(
-                team, await self._get_submission_url(hackathon_id, team.id)
+                team,
+                await self._get_submission_url(hackathon_id, team.id),
+                hackathon_name,
             )
             for team in teams
         ]

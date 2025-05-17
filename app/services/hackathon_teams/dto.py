@@ -14,13 +14,16 @@ class HackathonTeamDto(BaseModel):
 
     @staticmethod
     def from_tortoise(
-        team: HackathonTeamModel, submission_url: str | None = None
+        team: HackathonTeamModel,
+        submission_url: str | None = None,
+        hackathon_name: str | None = None,
     ):
         return HackathonTeamDto(
             id=team.id,
             name=team.name,
             hackathon_id=team.hackathon_id,
             submission_url=submission_url,
+            hackathon_name=hackathon_name,
         )
 
 
