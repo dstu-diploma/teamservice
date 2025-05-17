@@ -43,6 +43,6 @@ class IUserServicePort(Protocol):
         self, user_ids: frozenset[int]
     ) -> list[MinimalUserDto]:
         try:
-            return await self.try_get_user_info_many(user_ids)
+            return await self.get_user_info_many(user_ids)
         except Exception:
             return []
