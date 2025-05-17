@@ -1,6 +1,7 @@
 from app.services.brand_team.dto import TeamDto, TeamWithMatesDto
 from app.services.mate.interface import IMateService
 from app.ports.userservice import IUserServicePort
+from collections import defaultdict
 from typing import Protocol
 
 
@@ -8,6 +9,8 @@ class ITeamService(Protocol):
     user_service: IUserServicePort
     mate_service: IMateService
 
+    async def get_team_by_id(self, team_id: int) -> TeamDto: ...
+    async def get_name_map(self) -> defaultdict[int, str | None]: ...
     async def exists(self, team_id: int) -> bool: ...
     async def create(self, name: str, owner_id: int) -> TeamDto: ...
     async def get_info(self, team_id: int) -> TeamWithMatesDto: ...

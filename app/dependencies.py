@@ -91,10 +91,12 @@ def get_hackathon_teams_service(
     submission_service: IHackathonTeamSubmissionsService = Depends(
         get_hackathon_team_submissions_service
     ),
+    user_service: IUserServicePort = Depends(get_user_service),
 ) -> IHackathonTeamsService:
     return HackathonTeamsService(
         hackathon_service=hackathon_service,
         brand_mate_service=brand_mate_service,
         brand_team_service=brand_team_service,
         submission_service=submission_service,
+        user_service=user_service,
     )

@@ -26,6 +26,7 @@ class HackathonTeamDto(BaseModel):
 class HackathonTeamMateDto(BaseModel):
     team_id: int
     user_id: int
+    user_name: str | None = None
     is_captain: bool
     role_desc: str | None
 

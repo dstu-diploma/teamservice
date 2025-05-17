@@ -1,3 +1,4 @@
+from app.ports.userservice import IUserServicePort
 from app.services.hackathon_teams.interface import IHackathonTeamsService
 from app.services.brand_team.exceptions import TeamDoesNotExistException
 from app.ports.hackathonservice import IHackathonServicePort
@@ -6,6 +7,7 @@ from app.services.brand_team.interface import ITeamService
 from app.services.mate.interface import IMateService
 from tortoise.transactions import in_transaction
 from app.services.mate.dto import TeamMateDto
+import app.util.dto_utils as dto_utils
 from app.config import Settings
 from typing import cast
 
@@ -43,11 +45,13 @@ class HackathonTeamsService(IHackathonTeamsService):
         brand_mate_service: IMateService,
         brand_team_service: ITeamService,
         submission_service: IHackathonTeamSubmissionsService,
+        user_service: IUserServicePort,
     ):
         self.hackathon_service = hackathon_service
         self.brand_mate_service = brand_mate_service
         self.brand_team_service = brand_team_service
         self.submission_service = submission_service
+        self.user_service = user_service
 
     async def get_registered_users_count(self, hackathon_id: int) -> int:
         return await HackathonTeamMatesModel.filter(
@@ -57,7 +61,16 @@ class HackathonTeamsService(IHackathonTeamsService):
     async def get_mates(self, team_id: int) -> list[HackathonTeamMateDto]:
         mates = await HackathonTeamMatesModel.filter(team_id=team_id)
 
-        return [HackathonTeamMateDto.from_tortoise(mate) for mate in mates]
+        dtos = [HackathonTeamMateDto.from_tortoise(mate) for mate in mates]
+        names = self.user_service.get_name_map(
+            await self.user_service.try_get_user_info_many(
+                dto_utils.export_int_fields(dtos, "user_id")
+            )
+        )
+
+        return dto_utils.inject_mapping(
+            dtos, names, "user_id", "user_name", strict=True
+        )
 
     async def _get_mate(
         self, user_id: int, hackathon_id: int
@@ -78,9 +91,15 @@ class HackathonTeamsService(IHackathonTeamsService):
     async def get_mate(
         self, user_id: int, hackathon_id: int
     ) -> HackathonTeamMateDto:
-        return HackathonTeamMateDto.from_tortoise(
+        dto = HackathonTeamMateDto.from_tortoise(
             await self._get_mate(user_id, hackathon_id)
         )
+
+        user_info = await self.user_service.try_get_user_info(user_id)
+        if user_info:
+            dto.user_name = self.user_service.format_name(user_info)
+
+        return dto
 
     async def _get_by_id(self, team_id: int) -> HackathonTeamModel:
         team = await HackathonTeamModel.get_or_none(id=team_id)
@@ -223,7 +242,12 @@ class HackathonTeamsService(IHackathonTeamsService):
         mate.is_captain = is_captain
         await mate.save()
 
-        return HackathonTeamMateDto.from_tortoise(mate)
+        dto = HackathonTeamMateDto.from_tortoise(mate)
+        user_info = await self.user_service.try_get_user_info(mate_user_id)
+        if user_info:
+            dto.user_name = self.user_service.format_name(user_info)
+
+        return dto
 
     async def set_mate_role_desc(
         self, hackathon_id: int, mate_user_id: int, role_desc: str
@@ -238,7 +262,12 @@ class HackathonTeamsService(IHackathonTeamsService):
         mate.role_desc = role_desc
         await mate.save()
 
-        return HackathonTeamMateDto.from_tortoise(mate)
+        dto = HackathonTeamMateDto.from_tortoise(mate)
+        user_info = await self.user_service.try_get_user_info(mate_user_id)
+        if user_info:
+            dto.user_name = self.user_service.format_name(user_info)
+
+        return dto
 
     async def delete_team(self, team_id: int) -> HackathonTeamDto:
         team = await self._get_by_id(team_id)
@@ -263,7 +292,12 @@ class HackathonTeamsService(IHackathonTeamsService):
         else:
             await mate.delete()
 
-        return HackathonTeamMateDto.from_tortoise(mate)
+        dto = HackathonTeamMateDto.from_tortoise(mate)
+        user_info = await self.user_service.try_get_user_info(mate_user_id)
+        if user_info:
+            dto.user_name = self.user_service.format_name(user_info)
+
+        return dto
 
     async def add_mate(
         self,
@@ -296,15 +330,25 @@ class HackathonTeamsService(IHackathonTeamsService):
             role_desc=brand_mate.role_desc,
         )
 
-        return HackathonTeamMateDto.from_tortoise(hackathon_mate)
+        dto = HackathonTeamMateDto.from_tortoise(hackathon_mate)
+        dto.user_name = brand_mate.user_name
+        return dto
 
     async def get_captains(self, team_id: int) -> list[HackathonTeamMateDto]:
-        captains = await HackathonTeamMatesModel.filter(
+        mates = await HackathonTeamMatesModel.filter(
             team_id=team_id, is_captain=True
         )
-        return [
-            HackathonTeamMateDto.from_tortoise(captain) for captain in captains
-        ]
+
+        dtos = [HackathonTeamMateDto.from_tortoise(mate) for mate in mates]
+        names = self.user_service.get_name_map(
+            await self.user_service.try_get_user_info_many(
+                dto_utils.export_int_fields(dtos, "user_id")
+            )
+        )
+
+        return dto_utils.inject_mapping(
+            dtos, names, "user_id", "user_name", strict=True
+        )
 
     async def get_hackathon_teams(
         self, hackathon_id: int

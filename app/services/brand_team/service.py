@@ -1,3 +1,5 @@
+from collections import defaultdict
+from email.policy import default
 from app.ports.userservice.exceptions import UserDoesNotExistException
 from app.services.mate.exceptions import AlreadyTeamMemberException
 from app.services.brand_team.dto import TeamDto, TeamWithMatesDto
@@ -29,6 +31,18 @@ class TeamService(ITeamService):
             raise TeamDoesNotExistException()
 
         return team
+
+    async def get_team_by_id(self, team_id: int) -> TeamDto:
+        return TeamDto.from_tortoise(await self._get_team_by_id(team_id))
+
+    async def get_name_map(self) -> defaultdict[int, str | None]:
+        teams = await TeamModel.all().only("id", "name")
+        mapping: defaultdict[int, str | None] = defaultdict(lambda: None)
+
+        for team in teams:
+            mapping[team.id] = team.name
+
+        return mapping
 
     async def exists(self, team_id: int) -> bool:
         return await TeamModel.exists(id=team_id)
