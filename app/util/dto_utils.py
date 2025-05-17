@@ -40,13 +40,13 @@ def inject_mapping(
             injected_dtos.append(dto.__class__(**dumped))
             continue
 
-        for key in dumped:
+        dumped_immutable = dto.model_dump()
+        for key in dumped_immutable:
             if lookup_pattern not in key:
                 continue
 
             mapping_key = key.replace(lookup_pattern, replace_pattern)
-            dumped[replace_pattern] = mapping[dumped[mapping_key]]
-
+            dumped[mapping_key] = mapping[dumped[key]]
         injected_dtos.append(dto.__class__(**dumped))
 
     return injected_dtos
