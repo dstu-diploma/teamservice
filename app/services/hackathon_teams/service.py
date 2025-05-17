@@ -128,21 +128,27 @@ class HackathonTeamsService(IHackathonTeamsService):
 
     async def get_by_id(self, team_id: int) -> HackathonTeamDto:
         team = await self._get_by_id(team_id)
-        return HackathonTeamDto.from_tortoise(
+        hack_info = await self.hackathon_service.try_get_hackathon_data(
+            team.hackathon_id
+        )
+        dto = HackathonTeamDto.from_tortoise(
             team,
             submission_url=await self._get_submission_url(
                 team.hackathon_id, team.id
             ),
         )
 
+        if hack_info:
+            dto.hackathon_name = hack_info.name
+
+        return dto
+
     async def get_total(self, team_id: int) -> HackathonTeamWithMatesDto:
-        team = await self._get_by_id(team_id)
+        team = await self.get_by_id(team_id)
         mates = await self.get_mates(team_id)
 
         return HackathonTeamWithMatesDto(
-            id=team.id,
-            hackathon_id=team.hackathon_id,
-            name=team.name,
+            **team.model_dump(),
             mates=mates,
             submission_url=await self._get_submission_url(
                 team.hackathon_id, team.id

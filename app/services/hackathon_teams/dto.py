@@ -9,6 +9,7 @@ class HackathonTeamDto(BaseModel):
     id: int
     hackathon_id: int
     name: str
+    hackathon_name: str | None = None
     submission_url: str | None = None
 
     @staticmethod
