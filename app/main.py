@@ -1,15 +1,11 @@
-import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from app.dependencies import get_event_consumer
 from contextlib import asynccontextmanager
+from app.events import register_events
 from app.routers import main_router
 from app.config import Settings
 from fastapi import FastAPI
 from app.db import init_db
-
-
-async def on_event_received(payload: dict):
-    print(f"Received event: {payload}")
 
 
 @asynccontextmanager
@@ -17,9 +13,7 @@ async def lifespan(app: FastAPI):
     userservice_consumer = get_event_consumer()
     await userservice_consumer.connect()
 
-    task = await userservice_consumer.create_consuming_loop(
-        ["user.banned"], on_event_received
-    )
+    task = await register_events(userservice_consumer)
 
     yield
 

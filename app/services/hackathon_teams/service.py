@@ -1,3 +1,4 @@
+from app.events.emitter import Emitter, Events
 from app.ports.userservice import IUserServicePort
 from app.services.hackathon_teams.interface import IHackathonTeamsService
 from app.services.brand_team.exceptions import TeamDoesNotExistException
@@ -52,6 +53,27 @@ class HackathonTeamsService(IHackathonTeamsService):
         self.brand_team_service = brand_team_service
         self.submission_service = submission_service
         self.user_service = user_service
+
+        self._init_events()
+
+    def _init_events(self):
+        async def on_user_deleted(payload: dict):
+            user_id = payload["data"]["user_id"]
+
+            mate_data = await HackathonTeamMatesModel.filter(user_id=user_id)
+            for mate in mate_data:
+                try:
+                    await self.remove_mate(mate.team.hackathon_id, mate.user_id)
+                except Exception as e:
+                    pass
+
+        async def on_user_banned(payload: dict):
+            is_banned = payload["data"]["is_banned"]
+            if is_banned:
+                return await on_user_deleted(payload)
+
+        Emitter.on(Events.UserDeleted, on_user_deleted)
+        Emitter.on(Events.UserBanned, on_user_banned)
 
     async def get_registered_users_count(self, hackathon_id: int) -> int:
         return await HackathonTeamMatesModel.filter(
