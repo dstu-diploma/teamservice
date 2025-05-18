@@ -4,7 +4,7 @@ from app.services.mate.exceptions import AlreadyTeamMemberException
 from app.services.brand_team.interface import ITeamService
 from app.services.invite.interface import IInviteService
 from app.services.mate.interface import IMateService
-from app.ports.userservice.dto import MinimalUserDto
+from app.ports.userservice.dto import ExternalUserDto
 from app.ports.userservice import IUserServicePort
 from app.services.invite.dto import TeamInviteDto
 from app.models.team import TeamInvitesModel
@@ -31,7 +31,7 @@ class InviteService(IInviteService):
     async def clear_by_user(self, user_id: int) -> None:
         await TeamInvitesModel.filter(user_id=user_id).delete()
 
-    async def _get_user_info(self, user_id: int) -> MinimalUserDto:
+    async def _get_user_info(self, user_id: int) -> ExternalUserDto:
         try:
             return await self.user_service.get_user_info(user_id)
         except HTTPException as e:

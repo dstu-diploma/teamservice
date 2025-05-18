@@ -1,6 +1,6 @@
 from app.ports.userservice.exceptions import UserDoesNotExistException
 from app.services.mate.interface import IMateService
-from app.ports.userservice.dto import MinimalUserDto
+from app.ports.userservice.dto import ExternalUserDto
 from app.ports.userservice import IUserServicePort
 from app.services.mate.dto import TeamMateDto
 from app.models.team import TeamMatesModel
@@ -24,7 +24,7 @@ class MateService(IMateService):
 
         return mate
 
-    async def _get_mate_info(self, user_id: int) -> MinimalUserDto:
+    async def _get_mate_info(self, user_id: int) -> ExternalUserDto:
         try:
             return await self.user_service.get_user_info(user_id)
         except HTTPException as e:

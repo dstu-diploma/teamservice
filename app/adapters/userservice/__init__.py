@@ -1,5 +1,5 @@
 from app.ports.userservice.exceptions import UserServiceError
-from app.ports.userservice.dto import MinimalUserDto
+from app.ports.userservice.dto import ExternalUserDto
 from app.ports.userservice import IUserServicePort
 from fastapi import HTTPException
 from app.config import Settings
@@ -49,17 +49,17 @@ class UserServiceAdapter(IUserServicePort):
         except httpx.HTTPError as e:
             raise UserServiceError()
 
-    async def get_user_info(self, user_id: int) -> MinimalUserDto:
+    async def get_user_info(self, user_id: int) -> ExternalUserDto:
         data = await self._do_get(
             urllib.parse.urljoin(self.base_url, str(user_id))
         )
-        return MinimalUserDto(**data)
+        return ExternalUserDto(**data)
 
     async def get_user_info_many(
         self, user_ids: frozenset[int]
-    ) -> list[MinimalUserDto]:
+    ) -> list[ExternalUserDto]:
         data: list[dict[str, Any]] = await self._do_post(
             urllib.parse.urljoin(self.base_url, "info-many"),
             tuple(user_ids),
         )
-        return [MinimalUserDto(**user) for user in data]
+        return [ExternalUserDto(**user) for user in data]
