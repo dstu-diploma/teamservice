@@ -1,15 +1,31 @@
 from fastapi.middleware.cors import CORSMiddleware
+from app.dependencies import get_event_consumer
+from contextlib import asynccontextmanager
 from app.routers import main_router
+from app.config import Settings
 from fastapi import FastAPI
 from app.db import init_db
-from app.config import Settings
+
+
+async def on_event_received(payload: dict):
+    print(f"Received event: {payload}")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db(app)
+    consumer = get_event_consumer()
+    await consumer.consume(["users"], on_event_received)
+    yield
+
 
 app = FastAPI(
     title="DSTU Diploma | TeamService",
     docs_url="/swagger",
     root_path=Settings.ROOT_PATH,
+    lifespan=lifespan,
 )
-init_db(app)
+
 
 app.add_middleware(
     CORSMiddleware,
