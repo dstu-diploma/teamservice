@@ -58,12 +58,22 @@ class HackathonTeamsService(IHackathonTeamsService):
 
     def _init_events(self):
         async def on_user_deleted(payload: dict):
-            user_id = payload["data"]["user_id"]
+            data: dict | None = payload.get("data", None)
+            if data is None:
+                return
 
-            mate_data = await HackathonTeamMatesModel.filter(user_id=user_id)
+            user_id = data.get("id")
+            if user_id is None:
+                return
+
+            mate_data = await HackathonTeamMatesModel.filter(
+                user_id=user_id
+            ).prefetch_related("team")
             for mate in mate_data:
                 try:
-                    await self.remove_mate(mate.team.hackathon_id, mate.user_id)
+                    await self.remove_mate(
+                        mate.team.hackathon_id, mate.user_id, silent=True
+                    )
                 except Exception as e:
                     pass
 
@@ -305,7 +315,7 @@ class HackathonTeamsService(IHackathonTeamsService):
         return HackathonTeamDto.from_tortoise(team)
 
     async def remove_mate(
-        self, hackathon_id: int, mate_user_id: int
+        self, hackathon_id: int, mate_user_id: int, silent: bool = False
     ) -> HackathonTeamMateDto:
         mate = await self._get_mate(mate_user_id, hackathon_id)
 
@@ -323,9 +333,10 @@ class HackathonTeamsService(IHackathonTeamsService):
             await mate.delete()
 
         dto = HackathonTeamMateDto.from_tortoise(mate)
-        user_info = await self.user_service.try_get_user_info(mate_user_id)
-        if user_info:
-            dto.user_name = user_info.formatted_name
+        if not silent:
+            user_info = await self.user_service.try_get_user_info(mate_user_id)
+            if user_info:
+                dto.user_name = user_info.formatted_name
 
         return dto
 

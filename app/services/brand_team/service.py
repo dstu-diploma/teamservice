@@ -28,12 +28,19 @@ class TeamService(ITeamService):
 
     def _init_events(self):
         async def on_user_deleted(payload: dict):
-            user_id = payload["data"]["user_id"]
+            data: dict | None = payload.get("data", None)
+            if data is None:
+                return
+
+            user_id = data.get("id")
+            if user_id is None:
+                return
+
             mate = await self.mate_service.get_mate(user_id)
             if mate is None:
                 return
 
-            await self.mate_service.remove(user_id)
+            await self.mate_service.remove(user_id, silent=True)
 
             if await self.mate_service.get_mate_count(mate.team_id) == 0:
                 await self.delete(mate.team_id)

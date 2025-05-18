@@ -30,8 +30,7 @@ from app.services.hackathon_team_submissions.service import (
 
 
 async def get_http_client():
-    async with httpx.AsyncClient() as client:
-        yield client
+    return httpx.AsyncClient()
 
 
 @lru_cache

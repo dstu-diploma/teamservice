@@ -69,13 +69,18 @@ class MateService(IMateService):
 
         return dto
 
-    async def remove(self, user_id: int) -> TeamMateDto:
-        mate_info = await self._get_mate_info(user_id)
+    async def remove(self, user_id: int, silent: bool = False) -> TeamMateDto:
+        mate_info: ExternalUserDto | None = None
+        if not silent:
+            mate_info = await self._get_mate_info(user_id)
+
         mate = await self._get_mate(user_id)
         await mate.delete()
 
         dto = TeamMateDto.from_tortoise(mate)
-        dto.user_name = mate_info.formatted_name
+
+        if mate_info:
+            dto.user_name = mate_info.formatted_name
 
         return dto
 
