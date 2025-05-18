@@ -10,10 +10,10 @@ from app.db import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    userservice_consumer = get_event_consumer()
-    await userservice_consumer.connect()
+    consumer = get_event_consumer()
+    await consumer.connect()
 
-    task = await register_events(userservice_consumer)
+    task = await register_events(consumer)
 
     yield
 
