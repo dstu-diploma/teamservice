@@ -1,6 +1,6 @@
-from uuid import uuid4
 from app.ports.event_publisher import IEventPublisherPort
 from pydantic import BaseModel
+from uuid import uuid4
 import aio_pika
 
 from app.ports.event_publisher.dto import EventPayload
@@ -23,14 +23,12 @@ class AioPikaEventPublisherAdapter(IEventPublisherPort):
             self.exchange_name, aio_pika.ExchangeType.TOPIC
         )
 
-    async def publish(
-        self, routing_key: str, event_name, data: BaseModel
-    ) -> None:
+    async def publish(self, event_name: str, data: BaseModel) -> None:
         if not self._exchange:
             raise EventPublisherNotConnectedException()
 
         payload = EventPayload(
-            event_id=uuid4(), event_name=event_name, data=data
+            event_id=uuid4(), event_name=event_name, data=data.model_dump()
         )
 
         message = aio_pika.Message(
@@ -38,4 +36,4 @@ class AioPikaEventPublisherAdapter(IEventPublisherPort):
             content_type="application/json",
         )
 
-        await self._exchange.publish(message, routing_key=routing_key)
+        await self._exchange.publish(message, routing_key=event_name)
