@@ -86,8 +86,20 @@ class HackathonTeamsService(IHackathonTeamsService):
             if is_banned:
                 return await on_user_deleted(payload)
 
+        async def on_hackathon_deleted(payload: dict):
+            data: dict | None = payload.get("data", None)
+            if data is None:
+                return
+
+            hackathon_id = data.get("id")
+            if hackathon_id is None:
+                return
+
+            await HackathonTeamModel.filter(hackathon_id=hackathon_id).delete()
+
         Emitter.on(Events.UserDeleted, on_user_deleted)
         Emitter.on(Events.UserBanned, on_user_banned)
+        Emitter.on(Events.HackathonDeleted, on_hackathon_deleted)
 
     async def get_registered_users_count(self, hackathon_id: int) -> int:
         return await HackathonTeamMatesModel.filter(
