@@ -1,3 +1,4 @@
+import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from app.dependencies import get_event_consumer
 from contextlib import asynccontextmanager
@@ -13,10 +14,17 @@ async def on_event_received(payload: dict):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db(app)
-    consumer = get_event_consumer()
-    await consumer.consume(["users"], on_event_received)
+    userservice_consumer = get_event_consumer()
+    await userservice_consumer.connect()
+
+    task = await userservice_consumer.create_consuming_loop(
+        ["user.banned"], on_event_received
+    )
+
     yield
+
+    task.cancel()
+    await task
 
 
 app = FastAPI(
@@ -26,6 +34,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+init_db(app)
 
 app.add_middleware(
     CORSMiddleware,

@@ -46,7 +46,9 @@ def get_event_publisher() -> IEventPublisherPort:
 
 @lru_cache
 def get_event_consumer() -> IEventConsumerPort:
-    return AioPikaEventConsumerAdapter(Settings.RABBITMQ_URL, "events")
+    return AioPikaEventConsumerAdapter(
+        Settings.RABBITMQ_URL, "events", queue_name="teamservice"
+    )
 
 
 @lru_cache
