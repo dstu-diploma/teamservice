@@ -1,5 +1,6 @@
 from app.ports.hackathonservice import IHackathonServicePort
 from app.services.brand_team.interface import ITeamService
+from app.ports.event_publisher import IEventPublisherPort
 from app.services.mate.interface import IMateService
 from typing import Protocol
 
@@ -19,6 +20,7 @@ class IHackathonTeamsService(Protocol):
     brand_mate_service: IMateService
     brand_team_service: ITeamService
     submission_service: IHackathonTeamSubmissionsService
+    event_publisher: IEventPublisherPort
 
     async def get_registered_users_count(self, hackathon_id: int) -> int: ...
     async def get_mates(self, team_id: int) -> list[HackathonTeamMateDto]: ...

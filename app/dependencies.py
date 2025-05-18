@@ -108,6 +108,7 @@ def get_hackathon_teams_service(
         get_hackathon_team_submissions_service
     ),
     user_service: IUserServicePort = Depends(get_user_service),
+    event_publisher: IEventPublisherPort = Depends(get_event_publisher),
 ) -> IHackathonTeamsService:
     return HackathonTeamsService(
         hackathon_service=hackathon_service,
@@ -115,4 +116,5 @@ def get_hackathon_teams_service(
         brand_team_service=brand_team_service,
         submission_service=submission_service,
         user_service=user_service,
+        event_publisher=event_publisher,
     )

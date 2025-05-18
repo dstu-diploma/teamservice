@@ -1,16 +1,18 @@
-from app.events.emitter import Emitter, Events
-from app.ports.userservice import IUserServicePort
 from app.services.hackathon_teams.interface import IHackathonTeamsService
 from app.services.brand_team.exceptions import TeamDoesNotExistException
 from app.ports.hackathonservice import IHackathonServicePort
 from app.services.mate.exceptions import NotAMemberException
 from app.services.brand_team.interface import ITeamService
+from app.ports.event_publisher import IEventPublisherPort
 from app.services.mate.interface import IMateService
+from app.ports.userservice import IUserServicePort
 from tortoise.transactions import in_transaction
+from app.events.emitter import Emitter, Events
 from app.services.mate.dto import TeamMateDto
 import app.util.dto_utils as dto_utils
 from app.config import Settings
 from typing import cast
+
 
 from .exceptions import (
     UserAlreadyParticipatingInHackathonException,
@@ -47,12 +49,14 @@ class HackathonTeamsService(IHackathonTeamsService):
         brand_team_service: ITeamService,
         submission_service: IHackathonTeamSubmissionsService,
         user_service: IUserServicePort,
+        event_publisher: IEventPublisherPort,
     ):
         self.hackathon_service = hackathon_service
         self.brand_mate_service = brand_mate_service
         self.brand_team_service = brand_team_service
         self.submission_service = submission_service
         self.user_service = user_service
+        self.event_publisher = event_publisher
 
         self._init_events()
 
@@ -312,7 +316,11 @@ class HackathonTeamsService(IHackathonTeamsService):
     async def delete_team(self, team_id: int) -> HackathonTeamDto:
         team = await self._get_by_id(team_id)
         await team.delete()
-        return HackathonTeamDto.from_tortoise(team)
+        dto = HackathonTeamDto.from_tortoise(team)
+
+        await self.event_publisher.publish("team.hackathon_team_deleted", dto)
+
+        return dto
 
     async def remove_mate(
         self, hackathon_id: int, mate_user_id: int, silent: bool = False
