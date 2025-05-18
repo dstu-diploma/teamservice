@@ -1,13 +1,13 @@
-from collections import defaultdict
-from email.policy import default
 from app.ports.userservice.exceptions import UserDoesNotExistException
 from app.services.mate.exceptions import AlreadyTeamMemberException
 from app.services.brand_team.dto import TeamDto, TeamWithMatesDto
 from app.services.brand_team.interface import ITeamService
 from app.services.mate.interface import IMateService
 from app.ports.userservice import IUserServicePort
+from app.events.emitter import Emitter, Events
 from tortoise.exceptions import IntegrityError
 from app.models.team import TeamModel
+from collections import defaultdict
 
 from app.services.brand_team.exceptions import (
     UserIsNotOwnerOfTeamException,
@@ -23,6 +23,35 @@ class TeamService(ITeamService):
     ):
         self.user_service = user_service
         self.mate_service = mate_service
+
+        self._init_events()
+
+    def _init_events(self):
+        async def on_user_deleted(payload: dict):
+            data: dict | None = payload.get("data", None)
+            if data is None:
+                return
+
+            user_id = data.get("id")
+            if user_id is None:
+                return
+
+            mate = await self.mate_service.get_mate(user_id)
+            if mate is None:
+                return
+
+            await self.mate_service.remove(user_id, silent=True)
+
+            if await self.mate_service.get_mate_count(mate.team_id) == 0:
+                await self.delete(mate.team_id)
+
+        async def on_user_banned(payload: dict):
+            is_banned = payload["data"]["is_banned"]
+            if is_banned:
+                return await on_user_deleted(payload)
+
+        Emitter.on(Events.UserDeleted, on_user_deleted)
+        Emitter.on(Events.UserBanned, on_user_banned)
 
     async def _get_team_by_id(self, team_id: int) -> TeamModel:
         team = await TeamModel.get_or_none(id=team_id)

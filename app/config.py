@@ -7,6 +7,7 @@ class TeamServiceSettings(BaseSettings):
     )
 
     DATABASE_URL: str
+    RABBITMQ_URL: str
 
     USER_SERVICE_URL: str
     USER_SERVICE_API_KEY: str

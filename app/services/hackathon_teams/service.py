@@ -1,15 +1,18 @@
-from app.ports.userservice import IUserServicePort
 from app.services.hackathon_teams.interface import IHackathonTeamsService
 from app.services.brand_team.exceptions import TeamDoesNotExistException
 from app.ports.hackathonservice import IHackathonServicePort
 from app.services.mate.exceptions import NotAMemberException
 from app.services.brand_team.interface import ITeamService
+from app.ports.event_publisher import IEventPublisherPort
 from app.services.mate.interface import IMateService
+from app.ports.userservice import IUserServicePort
 from tortoise.transactions import in_transaction
+from app.events.emitter import Emitter, Events
 from app.services.mate.dto import TeamMateDto
 import app.util.dto_utils as dto_utils
 from app.config import Settings
 from typing import cast
+
 
 from .exceptions import (
     UserAlreadyParticipatingInHackathonException,
@@ -46,12 +49,57 @@ class HackathonTeamsService(IHackathonTeamsService):
         brand_team_service: ITeamService,
         submission_service: IHackathonTeamSubmissionsService,
         user_service: IUserServicePort,
+        event_publisher: IEventPublisherPort,
     ):
         self.hackathon_service = hackathon_service
         self.brand_mate_service = brand_mate_service
         self.brand_team_service = brand_team_service
         self.submission_service = submission_service
         self.user_service = user_service
+        self.event_publisher = event_publisher
+
+        self._init_events()
+
+    def _init_events(self):
+        async def on_user_deleted(payload: dict):
+            data: dict | None = payload.get("data", None)
+            if data is None:
+                return
+
+            user_id = data.get("id")
+            if user_id is None:
+                return
+
+            mate_data = await HackathonTeamMatesModel.filter(
+                user_id=user_id
+            ).prefetch_related("team")
+            for mate in mate_data:
+                try:
+                    await self.remove_mate(
+                        mate.team.hackathon_id, mate.user_id, silent=True
+                    )
+                except Exception as e:
+                    pass
+
+        async def on_user_banned(payload: dict):
+            is_banned = payload["data"]["is_banned"]
+            if is_banned:
+                return await on_user_deleted(payload)
+
+        async def on_hackathon_deleted(payload: dict):
+            data: dict | None = payload.get("data", None)
+            if data is None:
+                return
+
+            hackathon_id = data.get("id")
+            if hackathon_id is None:
+                return
+
+            await HackathonTeamModel.filter(hackathon_id=hackathon_id).delete()
+
+        Emitter.on(Events.UserDeleted, on_user_deleted)
+        Emitter.on(Events.UserBanned, on_user_banned)
+        Emitter.on(Events.HackathonDeleted, on_hackathon_deleted)
 
     async def get_registered_users_count(self, hackathon_id: int) -> int:
         return await HackathonTeamMatesModel.filter(
@@ -280,10 +328,14 @@ class HackathonTeamsService(IHackathonTeamsService):
     async def delete_team(self, team_id: int) -> HackathonTeamDto:
         team = await self._get_by_id(team_id)
         await team.delete()
-        return HackathonTeamDto.from_tortoise(team)
+        dto = HackathonTeamDto.from_tortoise(team)
+
+        await self.event_publisher.publish("team.hackathon_team_deleted", dto)
+
+        return dto
 
     async def remove_mate(
-        self, hackathon_id: int, mate_user_id: int
+        self, hackathon_id: int, mate_user_id: int, silent: bool = False
     ) -> HackathonTeamMateDto:
         mate = await self._get_mate(mate_user_id, hackathon_id)
 
@@ -301,9 +353,10 @@ class HackathonTeamsService(IHackathonTeamsService):
             await mate.delete()
 
         dto = HackathonTeamMateDto.from_tortoise(mate)
-        user_info = await self.user_service.try_get_user_info(mate_user_id)
-        if user_info:
-            dto.user_name = user_info.formatted_name
+        if not silent:
+            user_info = await self.user_service.try_get_user_info(mate_user_id)
+            if user_info:
+                dto.user_name = user_info.formatted_name
 
         return dto
 
