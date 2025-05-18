@@ -1,5 +1,5 @@
+from app.dependencies import get_event_consumer, get_event_publisher
 from fastapi.middleware.cors import CORSMiddleware
-from app.dependencies import get_event_consumer
 from contextlib import asynccontextmanager
 from app.events import register_events
 from app.routers import main_router
@@ -11,6 +11,9 @@ from app.db import init_db
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     consumer = get_event_consumer()
+    publisher = get_event_publisher()
+
+    await publisher.connect()
     await consumer.connect()
 
     task = await register_events(consumer)
