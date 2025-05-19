@@ -2,6 +2,7 @@ from app.models.hackathon_team import HackathonTeamSubmissionModel
 from app.ports.hackathonservice import IHackathonServicePort
 from app.ports.storage import IStoragePort
 from . import utils
+import urllib.parse
 import io
 
 from .dto import (
@@ -74,7 +75,6 @@ class HackathonTeamSubmissionsService(IHackathonTeamSubmissionsService):
         hackathon_id: int,
         team_id: int,
     ) -> str:
-        redirect_url = (
-            f"{base_url}/download/submission/{hackathon_id}/{team_id}"
+        return urllib.parse.urljoin(
+            base_url, f"download/submission/{hackathon_id}/{team_id}"
         )
-        return redirect_url
