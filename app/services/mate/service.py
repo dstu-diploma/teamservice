@@ -32,22 +32,36 @@ class MateService(IMateService):
 
     async def get_mate(self, user_id: int) -> TeamMateDto | None:
         mate = await TeamMatesModel.get_or_none(user_id=user_id)
-        if mate:
-            return TeamMateDto.from_tortoise(mate)
-        return None
+
+        if not mate:
+            return None
+
+        user_info = await self.user_service.try_get_user_info(mate.user_id)
+        dto = TeamMateDto.from_tortoise(mate)
+
+        if user_info:
+            dto.user_uploads = user_info.uploads
+
+        return dto
 
     async def get_mates(self, team_id: int) -> list[TeamMateDto]:
         mates = await TeamMatesModel.filter(team_id=team_id)
         dtos = [TeamMateDto.from_tortoise(mate) for mate in mates]
-        names = self.user_service.get_name_map(
-            await self.user_service.try_get_user_info_many(
-                dto_utils.export_int_fields(dtos, "user_id")
-            )
+        external_user_info = await self.user_service.try_get_user_info_many(
+            dto_utils.export_int_fields(dtos, "user_id")
         )
+        names = self.user_service.get_name_map(external_user_info)
+        user_map = dict((user.id, user) for user in external_user_info)
 
-        return dto_utils.inject_mapping(
+        dtos = dto_utils.inject_mapping(
             dtos, names, "user_id", "user_name", strict=True
         )
+
+        for dto in dtos:
+            if dto.user_id in user_map:
+                dto.user_uploads = user_map[dto.user_id].uploads
+
+        return dtos
 
     async def get_mate_count(self, team_id: int) -> int:
         return await TeamMatesModel.filter(team_id=team_id).count()
@@ -66,6 +80,7 @@ class MateService(IMateService):
 
         dto = TeamMateDto.from_tortoise(mate)
         dto.user_name = mate_info.formatted_name
+        dto.user_uploads = mate_info.uploads
 
         return dto
 
@@ -81,6 +96,7 @@ class MateService(IMateService):
 
         if mate_info:
             dto.user_name = mate_info.formatted_name
+            dto.user_uploads = mate_info.uploads
 
         return dto
 
@@ -95,6 +111,7 @@ class MateService(IMateService):
 
         dto = TeamMateDto.from_tortoise(mate)
         dto.user_name = mate_info.formatted_name
+        dto.user_uploads = mate_info.uploads
 
         return dto
 
@@ -107,18 +124,25 @@ class MateService(IMateService):
 
         dto = TeamMateDto.from_tortoise(mate)
         dto.user_name = mate_info.formatted_name
+        dto.user_uploads = mate_info.uploads
 
         return dto
 
     async def get_captains(self, team_id: int) -> list[TeamMateDto]:
         mates = await TeamMatesModel.filter(team_id=team_id, is_captain=True)
         dtos = [TeamMateDto.from_tortoise(mate) for mate in mates]
-        names = self.user_service.get_name_map(
-            await self.user_service.try_get_user_info_many(
-                dto_utils.export_int_fields(dtos, "user_id")
-            )
+        external_user_info = await self.user_service.try_get_user_info_many(
+            dto_utils.export_int_fields(dtos, "user_id")
         )
+        names = self.user_service.get_name_map(external_user_info)
+        user_map = dict((user.id, user) for user in external_user_info)
 
-        return dto_utils.inject_mapping(
+        dtos = dto_utils.inject_mapping(
             dtos, names, "user_id", "user_name", strict=True
         )
+
+        for dto in dtos:
+            if dto.user_id in user_map:
+                dto.user_uploads = user_map[dto.user_id].uploads
+
+        return dtos

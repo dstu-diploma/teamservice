@@ -1,8 +1,10 @@
+from app.ports.userservice.dto import UserUploadDto
+from pydantic import BaseModel
+
 from app.models.hackathon_team import (
     HackathonTeamMatesModel,
     HackathonTeamModel,
 )
-from pydantic import BaseModel
 
 
 class HackathonTeamDto(BaseModel):
@@ -31,6 +33,7 @@ class HackathonTeamMateDto(BaseModel):
     team_id: int
     user_id: int
     user_name: str | None = None
+    user_uploads: list[UserUploadDto] | None = None
     is_captain: bool
     role_desc: str | None
 

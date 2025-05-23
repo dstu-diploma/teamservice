@@ -110,15 +110,21 @@ class HackathonTeamsService(IHackathonTeamsService):
         mates = await HackathonTeamMatesModel.filter(team_id=team_id)
 
         dtos = [HackathonTeamMateDto.from_tortoise(mate) for mate in mates]
-        names = self.user_service.get_name_map(
-            await self.user_service.try_get_user_info_many(
-                dto_utils.export_int_fields(dtos, "user_id")
-            )
+        external_user_info = await self.user_service.try_get_user_info_many(
+            dto_utils.export_int_fields(dtos, "user_id")
         )
+        names = self.user_service.get_name_map(external_user_info)
+        user_map = dict((user.id, user) for user in external_user_info)
 
-        return dto_utils.inject_mapping(
+        dtos = dto_utils.inject_mapping(
             dtos, names, "user_id", "user_name", strict=True
         )
+
+        for dto in dtos:
+            if dto.user_id in user_map:
+                dto.user_uploads = user_map[dto.user_id].uploads
+
+        return dtos
 
     async def _get_mate(
         self, user_id: int, hackathon_id: int
@@ -146,6 +152,7 @@ class HackathonTeamsService(IHackathonTeamsService):
         user_info = await self.user_service.try_get_user_info(user_id)
         if user_info:
             dto.user_name = user_info.formatted_name
+            dto.user_uploads = user_info.uploads
 
         return dto
 
@@ -302,6 +309,7 @@ class HackathonTeamsService(IHackathonTeamsService):
         user_info = await self.user_service.try_get_user_info(mate_user_id)
         if user_info:
             dto.user_name = user_info.formatted_name
+            dto.user_uploads = user_info.uploads
 
         return dto
 
@@ -322,6 +330,7 @@ class HackathonTeamsService(IHackathonTeamsService):
         user_info = await self.user_service.try_get_user_info(mate_user_id)
         if user_info:
             dto.user_name = user_info.formatted_name
+            dto.user_uploads = user_info.uploads
 
         return dto
 
@@ -357,6 +366,7 @@ class HackathonTeamsService(IHackathonTeamsService):
             user_info = await self.user_service.try_get_user_info(mate_user_id)
             if user_info:
                 dto.user_name = user_info.formatted_name
+                dto.user_uploads = user_info.uploads
 
         return dto
 
@@ -393,6 +403,7 @@ class HackathonTeamsService(IHackathonTeamsService):
 
         dto = HackathonTeamMateDto.from_tortoise(hackathon_mate)
         dto.user_name = brand_mate.user_name
+        dto.user_uploads = brand_mate.user_uploads
         return dto
 
     async def get_captains(self, team_id: int) -> list[HackathonTeamMateDto]:
@@ -401,11 +412,15 @@ class HackathonTeamsService(IHackathonTeamsService):
         )
 
         dtos = [HackathonTeamMateDto.from_tortoise(mate) for mate in mates]
-        names = self.user_service.get_name_map(
-            await self.user_service.try_get_user_info_many(
-                dto_utils.export_int_fields(dtos, "user_id")
-            )
+        external_user_info = await self.user_service.try_get_user_info_many(
+            dto_utils.export_int_fields(dtos, "user_id")
         )
+        names = self.user_service.get_name_map(external_user_info)
+        user_map = dict((user.id, user) for user in external_user_info)
+
+        for dto in dtos:
+            if dto.user_id in user_map:
+                dto.user_uploads = user_map[dto.user_id].uploads
 
         return dto_utils.inject_mapping(
             dtos, names, "user_id", "user_name", strict=True

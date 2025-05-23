@@ -1,3 +1,4 @@
+from app.ports.userservice.dto import UserUploadDto
 from app.models.team import TeamMatesModel
 from pydantic import BaseModel
 
@@ -6,6 +7,7 @@ class TeamMateDto(BaseModel):
     team_id: int
     user_id: int
     user_name: str | None = None
+    user_uploads: list[UserUploadDto] | None = None
     is_captain: bool
     role_desc: str | None
 
