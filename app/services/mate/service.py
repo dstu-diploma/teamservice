@@ -1,14 +1,18 @@
 from app.ports.userservice.exceptions import UserDoesNotExistException
-from app.services.mate.interface import IMateService
+from app.acl.permissions import Permissions, perform_check
 from app.ports.userservice.dto import ExternalUserDto
+from app.services.mate.interface import IMateService
 from app.ports.userservice import IUserServicePort
 from app.services.mate.dto import TeamMateDto
 from app.models.team import TeamMatesModel
 import app.util.dto_utils as dto_utils
+from app.acl.roles import UserRoles
 from fastapi import HTTPException
+from typing import cast
 
 from app.services.mate.exceptions import (
     AlreadyTeamMemberException,
+    IncorrectMateRoleException,
     NotAMemberException,
 )
 
@@ -73,6 +77,11 @@ class MateService(IMateService):
             raise AlreadyTeamMemberException()
 
         mate_info = await self._get_mate_info(user_id)
+
+        if not perform_check(
+            Permissions.CanBeInTeam, cast(UserRoles, mate_info.role)
+        ):
+            raise IncorrectMateRoleException()
 
         mate = await TeamMatesModel.create(
             team_id=team_id, user_id=user_id, is_captain=is_captain
