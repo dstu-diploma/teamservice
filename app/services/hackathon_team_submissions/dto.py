@@ -11,9 +11,12 @@ class HackathonTeamSubmissionDto(BaseModel):
     s3_key: str
     content_type: str
     uploaded_at: datetime
+    url: str | None = None
 
     @staticmethod
-    def from_tortoise(submission: HackathonTeamSubmissionModel):
+    def from_tortoise(
+        submission: HackathonTeamSubmissionModel, url: str | None = None
+    ):
         return HackathonTeamSubmissionDto(
             id=submission.id,
             team_id=submission.team_id,  # type: ignore[attr-defined]
@@ -22,4 +25,5 @@ class HackathonTeamSubmissionDto(BaseModel):
             s3_key=submission.s3_key,
             content_type=submission.content_type,
             uploaded_at=submission.uploaded_at,
+            url=url,
         )

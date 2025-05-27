@@ -4,7 +4,7 @@ from app.ports.event_publisher import IEventPublisherPort
 from app.services.mate.interface import IMateService
 from typing import Protocol
 
-from app.services.hackathon_teams.dto import (
+from .dto import (
     HackathonTeamWithMatesDto,
     HackathonTeamMateDto,
     HackathonTeamDto,

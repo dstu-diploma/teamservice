@@ -6,26 +6,30 @@ from app.models.hackathon_team import (
     HackathonTeamModel,
 )
 
+from app.services.hackathon_team_submissions.dto import (
+    HackathonTeamSubmissionDto,
+)
+
 
 class HackathonTeamDto(BaseModel):
     id: int
     hackathon_id: int
     name: str
     hackathon_name: str | None = None
-    submission_url: str | None = None
+    submission: HackathonTeamSubmissionDto | None = None
 
     @staticmethod
     def from_tortoise(
         team: HackathonTeamModel,
-        submission_url: str | None = None,
         hackathon_name: str | None = None,
+        submission: HackathonTeamSubmissionDto | None = None,
     ):
         return HackathonTeamDto(
             id=team.id,
             name=team.name,
             hackathon_id=team.hackathon_id,
-            submission_url=submission_url,
             hackathon_name=hackathon_name,
+            submission=submission,
         )
 
 

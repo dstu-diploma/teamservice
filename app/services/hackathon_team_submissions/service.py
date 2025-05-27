@@ -1,6 +1,7 @@
 from app.models.hackathon_team import HackathonTeamSubmissionModel
 from app.ports.hackathonservice import IHackathonServicePort
 from app.ports.storage import IStoragePort
+from app.config import Settings
 from . import utils
 import urllib.parse
 import io
@@ -36,7 +37,12 @@ class HackathonTeamSubmissionsService(IHackathonTeamSubmissionsService):
         )
 
         if submission:
-            return HackathonTeamSubmissionDto.from_tortoise(submission)
+            return HackathonTeamSubmissionDto.from_tortoise(
+                submission,
+                self.generate_redirect_link(
+                    Settings.PUBLIC_API_URL, hackathon_id, team_id
+                ),
+            )
 
         return None
 
@@ -67,7 +73,12 @@ class HackathonTeamSubmissionsService(IHackathonTeamSubmissionsService):
             hackathon_id=hackathon_id,
         )
 
-        return HackathonTeamSubmissionDto.from_tortoise(submission)
+        return HackathonTeamSubmissionDto.from_tortoise(
+            submission,
+            self.generate_redirect_link(
+                Settings.PUBLIC_API_URL, hackathon_id, team_id
+            ),
+        )
 
     def generate_redirect_link(
         self,

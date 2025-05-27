@@ -10,7 +10,6 @@ from tortoise.transactions import in_transaction
 from app.events.emitter import Emitter, Events
 from app.services.mate.dto import TeamMateDto
 import app.util.dto_utils as dto_utils
-from app.config import Settings
 from typing import cast
 
 
@@ -163,24 +162,6 @@ class HackathonTeamsService(IHackathonTeamsService):
 
         return team
 
-    async def _get_submission_url(
-        self,
-        hackathon_id: int,
-        team_id: int,
-    ) -> str | None:
-        submission = await self.submission_service.get_submission(
-            hackathon_id, team_id
-        )
-
-        if submission:
-            return self.submission_service.generate_redirect_link(
-                Settings.PUBLIC_API_URL,
-                hackathon_id,
-                team_id,
-            )
-
-        return None
-
     async def get_by_id(self, team_id: int) -> HackathonTeamDto:
         team = await self._get_by_id(team_id)
         hack_info = await self.hackathon_service.try_get_hackathon_data(
@@ -188,8 +169,8 @@ class HackathonTeamsService(IHackathonTeamsService):
         )
         dto = HackathonTeamDto.from_tortoise(
             team,
-            submission_url=await self._get_submission_url(
-                team.hackathon_id, team.id
+            submission=await self.submission_service.get_submission(
+                team.hackathon_id, team_id
             ),
         )
 
@@ -438,8 +419,10 @@ class HackathonTeamsService(IHackathonTeamsService):
         return [
             HackathonTeamDto.from_tortoise(
                 team,
-                await self._get_submission_url(hackathon_id, team.id),
                 hackathon_name,
+                await self.submission_service.get_submission(
+                    team.hackathon_id, team.id
+                ),
             )
             for team in teams
         ]
@@ -450,7 +433,11 @@ class HackathonTeamsService(IHackathonTeamsService):
         teams = await HackathonTeamModel.filter(id__in=hackathon_team_ids)
         return [
             HackathonTeamDto.from_tortoise(
-                team, await self._get_submission_url(team.hackathon_id, team.id)
+                team,
+                None,
+                await self.submission_service.get_submission(
+                    team.hackathon_id, team.id
+                ),
             )
             for team in teams
         ]
