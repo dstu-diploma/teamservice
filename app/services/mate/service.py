@@ -78,9 +78,7 @@ class MateService(IMateService):
 
         mate_info = await self._get_mate_info(user_id)
 
-        if not perform_check(
-            Permissions.CanBeInTeam, cast(UserRoles, mate_info.role)
-        ):
+        if not perform_check(Permissions.CanBeInTeam, mate_info.role):
             raise IncorrectMateRoleException()
 
         mate = await TeamMatesModel.create(

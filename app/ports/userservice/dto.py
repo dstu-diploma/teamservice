@@ -1,5 +1,6 @@
-from datetime import datetime
+from app.acl.roles import UserRoles
 from pydantic import BaseModel
+from datetime import datetime
 from enum import StrEnum
 
 
@@ -21,5 +22,5 @@ class ExternalUserDto(BaseModel):
     id: int
     is_banned: bool
     formatted_name: str
-    role: str
+    role: UserRoles
     uploads: list[UserUploadDto] | None = None
