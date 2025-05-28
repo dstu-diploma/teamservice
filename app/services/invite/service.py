@@ -1,15 +1,12 @@
-from collections import defaultdict
-from app.ports.userservice.exceptions import UserDoesNotExistException
 from app.services.mate.exceptions import AlreadyTeamMemberException
 from app.services.brand_team.interface import ITeamService
 from app.services.invite.interface import IInviteService
-from app.services.mate.interface import IMateService
 from app.ports.userservice.dto import ExternalUserDto
+from app.services.mate.interface import IMateService
 from app.ports.userservice import IUserServicePort
 from app.services.invite.dto import TeamInviteDto
 from app.models.team import TeamInvitesModel
 import app.util.dto_utils as dto_utils
-from fastapi import HTTPException
 
 from app.services.invite.exceptions import (
     UserAlreadyInvitedException,
@@ -32,10 +29,7 @@ class InviteService(IInviteService):
         await TeamInvitesModel.filter(user_id=user_id).delete()
 
     async def _get_user_info(self, user_id: int) -> ExternalUserDto:
-        try:
-            return await self.user_service.get_user_info(user_id)
-        except HTTPException as e:
-            raise UserDoesNotExistException()
+        return await self.user_service.get_user_info(user_id)
 
     async def invite_user(self, team_id: int, user_id: int) -> TeamInviteDto:
         if await TeamInvitesModel.exists(team_id=team_id, user_id=user_id):
