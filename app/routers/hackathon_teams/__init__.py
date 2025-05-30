@@ -116,6 +116,7 @@ async def set_mate_is_captain(
     """
     if (
         not dto.is_captain
+        and dto.user_id == owner_dto.user_dto.user_id
         and len(await service.get_captains(owner_dto.team_dto.id)) <= 1
     ):
         raise NoMoreCaptainsException()
