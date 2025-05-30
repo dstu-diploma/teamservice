@@ -363,6 +363,9 @@ class HackathonTeamsService(IHackathonTeamsService):
         ):
             raise CantEditHackathonTeamsException()
 
+        if await self.mate_exists(mate_user_id, hackathon_team.hackathon_id):
+            raise UserAlreadyParticipatingInHackathonException()
+
         await self._validate_hackathon_limits(
             hackathon_team.hackathon_id,
             len(await self.get_mates(to_hackathon_team_id)) + 1,
