@@ -5,7 +5,7 @@ class HackathonTeamCantUploadSubmissionsException(HTTPException):
     def __init__(self):
         super().__init__(
             status_code=400,
-            detail="Загружать результаты можно только до начала критериев оценивания!",
+            detail="Загружать результаты можно только до начала периода оценивания!",
         )
 
 
